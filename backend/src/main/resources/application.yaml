@@ -1,0 +1,51 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/chronoflow?useSSL=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:}
+      model: ${DASHSCOPE_MODEL:qwen-flash}
+
+mybatis-plus:
+  type-aliases-package: com.chronoflow.backend.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.slf4j.Slf4jImpl}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}
+
+notification:
+  ai:
+    model: ${NOTIFICATION_AI_MODEL:qwen-flash}
+    temperature: ${NOTIFICATION_AI_TEMPERATURE:0.0}
+
+aliyun:
+  sms:
+    access-key-id: ${ALIYUN_SMS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_SMS_ACCESS_KEY_SECRET:}
+    sign-name: ${ALIYUN_SMS_SIGN_NAME:}
+    template-code: ${ALIYUN_SMS_TEMPLATE_CODE:}
+  dm:
+    access-key-id: ${ALIYUN_DM_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_DM_ACCESS_KEY_SECRET:}
+    account-name: ${ALIYUN_DM_ACCOUNT_NAME:}
+    from-alias: ${ALIYUN_DM_FROM_ALIAS:时纪流}
+  green:
+    access-key-id: ${ALIYUN_GREEN_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_GREEN_ACCESS_KEY_SECRET:}
+    service: ${ALIYUN_GREEN_SERVICE:ugc_moderation_byllm}
+    endpoint: ${ALIYUN_GREEN_ENDPOINT:green-cip.cn-shanghai.aliyuncs.com}

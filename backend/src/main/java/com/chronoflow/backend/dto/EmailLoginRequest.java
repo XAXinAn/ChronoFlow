@@ -1,0 +1,18 @@
+package com.chronoflow.backend.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class EmailLoginRequest {
+
+    @NotBlank(message = "邮箱不能为空")
+    private String email;
+
+    @NotBlank(message = "验证码不能为空")
+    private String code;
+}

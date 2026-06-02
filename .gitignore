@@ -1,0 +1,28 @@
+# ===== 全局 =====
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+**/.DS_Store
+.vscode/
+
+# ===== 后端 =====
+backend/target/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# ===== 前端 =====
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins-dependencies
+frontend/.pub-cache/
+frontend/.pub/
+frontend/coverage/
+frontend/android/.gradle/
+frontend/android/app/debug
+frontend/android/app/profile
+frontend/android/app/release
+frontend/ios/Flutter/.last_build_id
