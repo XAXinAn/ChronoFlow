@@ -193,12 +193,12 @@ flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api  # 真机
 
 ### 分支策略
 
-**永远不要在 main 分支上直接开发。** 每次开发新功能或修复 bug 都从 main 拉一个新分支。
+**永远不要在 develop 分支上直接开发。** 每次开发新功能或修复 bug 都从 develop 拉一个新分支。
 
 ```bash
-# 1. 确保本地 main 是最新的
-git checkout main
-git pull origin main
+# 1. 确保本地 develop 是最新的
+git checkout develop
+git pull origin develop
 
 # 2. 创建功能分支（命名：feat/功能描述 或 fix/问题描述）
 git checkout -b feat/some-feature
@@ -216,15 +216,17 @@ git checkout -b feat/some-feature
 ### 开发流程
 
 ```
-main ─────●──────●──────●──────●────  （只接受合并，不直接提交）
-           \        /
-feat/xxx    ●──●──●           （在分支上开发，完成合并后删除）
+production ─────●──────────────●────  （只合并稳定版本）
+               /              /
+develop ─────●────●────●────●──────  （日常开发集成分支）
+              \        /
+feat/xxx       ●──●──●               （完成后合并到 develop 并删除）
 ```
 
 1. 在分支上开发和自测
 2. 确认无误后提交并推送到远端
 3. 在 GitHub 上创建 Pull Request
-4. 至少一人 Review 通过后合并到 main
+4. 至少一人 Review 通过后合并到 develop
 5. 合并后删除功能分支
 
 ```bash
