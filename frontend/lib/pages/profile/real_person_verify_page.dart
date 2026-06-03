@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/chrono_input_field.dart';
 import '../../service/auth_service.dart';
 import '../../service/real_person_service.dart';
 import '../../service/face_verify_bridge.dart';
@@ -125,12 +126,9 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
         const SizedBox(height: 8),
         const Text('信息仅用于身份认证，加密存储', style: TextStyle(fontSize: 13, color: Colors.black45), textAlign: TextAlign.center),
         const SizedBox(height: 48),
-        TextField(controller: _nameCtrl, focusNode: _nameFocus,
-          decoration: const InputDecoration(labelText: '真实姓名', border: OutlineInputBorder())),
-        const SizedBox(height: 20),
-        TextField(controller: _idCtrl, focusNode: _idFocus,
-          keyboardType: TextInputType.number, maxLength: 18,
-          decoration: const InputDecoration(labelText: '身份证号', border: OutlineInputBorder())),
+        ChronoInputField(controller: _nameCtrl, focusNode: _nameFocus, hint: '真实姓名', focused: _nameFocus.hasFocus),
+        const SizedBox(height: 24),
+        ChronoInputField(controller: _idCtrl, focusNode: _idFocus, hint: '身份证号', focused: _idFocus.hasFocus),
         const SizedBox(height: 40),
         ElevatedButton(onPressed: _startVerify,
           style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18), minimumSize: const Size(double.infinity, 56)),
