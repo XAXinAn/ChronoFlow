@@ -114,7 +114,26 @@ flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api
 
 ### 5. 构建安装包
 
+#### 生成签名（仅首次）
+
 ```bash
-flutter build apk --dart-define=BASE_URL=https://你的服务器地址/api    # Android
-flutter build ios --dart-define=BASE_URL=https://你的服务器地址/api    # iOS
+cd frontend/android/app
+keytool -genkey -v -keystore chronoflow.keystore -alias chronoflow \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass chronoflow2026 -keypass chronoflow2026 \
+  -dname "CN=XAXinAn, OU=ChronoFlow, O=ChronoFlow, L=Zhoushan, ST=Zhejiang, C=CN"
+```
+
+#### 构建
+
+```bash
+cd frontend
+flutter build apk --release      # 签名 APK → build/app/outputs/flutter-apk/app-release.apk
+```
+
+#### 部署到服务器
+
+```bash
+scp build/app/outputs/flutter-apk/app-release.apk chronoflow:/app/static/app.apk
+ssh chronoflow "sed -i 's/APP_VERSION_CODE=.*/APP_VERSION_CODE=<新版本号>/' /app/start.sh && /app/start.sh重启"
 ```
