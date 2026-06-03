@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +22,13 @@ import java.util.List;
 public class NotificationAiService {
 
     private final ChatModel chatModel;
+
+    public NotificationAiService(@Autowired(required = false) ChatModel chatModel) {
+        this.chatModel = chatModel;
+        if (chatModel == null) {
+            log.error("ChatModel not available - AI notification parsing will not work. Check DASHSCOPE_API_KEY.");
+        }
+    }
 
     private static final String SYSTEM_PROMPT = """
             你是日程提取专家，将OCR文本精准转化为结构化日程JSON。
@@ -67,10 +74,6 @@ public class NotificationAiService {
             """;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    public NotificationAiService(ChatModel chatModel) {
-        this.chatModel = chatModel;
-    }
 
     public List<NotificationParseResult> parseNotification(String ocrText) {
         LocalDateTime startTime = LocalDateTime.now();
