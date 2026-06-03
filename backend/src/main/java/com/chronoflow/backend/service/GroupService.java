@@ -687,7 +687,8 @@ public class GroupService {
                     if (desc != null) {
                         int count = groupMemberMapper.selectCount(
                                 new QueryWrapper<GroupMember>().eq("group_id", descId)).intValue();
-                        flatList.add(toResponse(desc, count));
+                        boolean canManage = isCreatorOrAdmin(userId, desc);
+                        flatList.add(toResponse(desc, count, null, canManage));
                     }
                 }
             }
