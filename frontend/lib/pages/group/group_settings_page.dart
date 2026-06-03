@@ -124,14 +124,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
               const SizedBox(height: 16),
               const Text('子群组创建申请', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
-              ...requests.map((r) => ListTile(
+              ...requests.map((r) => Material(
+                color: Colors.transparent,
+                child: ListTile(
                 title: Text(r['name'] ?? ''),
                 subtitle: Text('${r['applicantName'] ?? ''}  ${r['description'] ?? ''}'),
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, false); }),
                   IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, true); MessageUtils.show(context, '子群组创建成功'); }),
                 ]),
-              )),
+              ))),
             ]),
           ),
         ),
