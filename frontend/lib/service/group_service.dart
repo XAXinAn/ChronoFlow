@@ -201,6 +201,16 @@ class GroupService {
     }
   }
 
+  Future<List<Group>> getDescendantTree(String groupId) async {
+    final response = await ApiClient.get('$_baseUrl/$groupId/descendants');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取子孙群组失败');
+  }
+
   Future<List<Group>> getGroupChildren(String groupId) async {
     final response = await ApiClient.get('$_baseUrl/$groupId/children');
     final data = json.decode(response);

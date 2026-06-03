@@ -26,21 +26,29 @@ class _SelectPublishTargetsPageState extends State<SelectPublishTargetsPage> {
 
   Future<void> _load() async {
     try {
-      final tree = await _groupService.getPublishTargetTree();
-      if (mounted) setState(() { _tree = _findSubtree(tree, widget.rootGroupId); _loading = false; });
+      final flatList = await _groupService.getDescendantTree(widget.rootGroupId);
+      if (mounted) setState(() { _tree = _buildTree(flatList, null); _loading = false; });
     } catch (e) { if (mounted) setState(() => _loading = false); MessageUtils.showError(context, e); }
   }
 
-  /// Find the subtree rooted at [rootId].
-  List<Group> _findSubtree(List<Group> groups, String rootId) {
-    for (final g in groups) {
-      if (g.id == rootId) return g.children ?? [];
-      if (g.children != null) {
-        final found = _findSubtree(g.children!, rootId);
-        if (found.isNotEmpty) return found;
+  List<Group> _buildTree(List<Group> flat, String? parentId) {
+    final result = <Group>[];
+    for (final g in flat) {
+      if (g.parentId == parentId) {
+        final children = _buildTree(flat, g.id);
+        // Create a copy with children set
+        result.add(Group(
+          id: g.id, name: g.name, description: g.description,
+          inviteCode: g.inviteCode, memberCount: g.memberCount,
+          creatorId: g.creatorId, createdAt: g.createdAt,
+          requireApproval: g.requireApproval, depth: g.depth,
+          descendantCount: g.descendantCount,
+          hasChildren: children.isNotEmpty,
+          children: children.isNotEmpty ? children : null,
+        ));
       }
     }
-    return [];
+    return result;
   }
 
   void _toggle(String id) {

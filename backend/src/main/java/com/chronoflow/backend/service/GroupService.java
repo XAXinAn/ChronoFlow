@@ -718,6 +718,39 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Get the full descendant tree of a group (all children, grandchildren, etc.).
+     * Not limited by user membership.
+     */
+    public List<GroupResponse> getDescendantTree(String groupId) {
+        List<Group> allDescendants = new java.util.ArrayList<>();
+        collectDescendants(groupId, allDescendants);
+        return allDescendants.stream()
+                .map(g -> {
+                    int memberCount = groupMemberMapper.selectCount(
+                            new QueryWrapper<GroupMember>().eq("group_id", g.getId())).intValue();
+                    boolean hasChild = groupMapper.selectCount(
+                            new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
+                    int descendantCount = 0;
+                    if (hasChild) {
+                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1;
+                    }
+                    GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
+                    resp.setDescendantCount(descendantCount);
+                    return resp;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private void collectDescendants(String parentId, List<Group> result) {
+        List<Group> children = groupMapper.selectList(
+                new QueryWrapper<Group>().eq("parent_id", parentId));
+        for (Group child : children) {
+            result.add(child);
+            collectDescendants(child.getId(), result);
+        }
+    }
+
     public List<String> getDescendantGroupIds(String groupId) {
         List<String> result = new java.util.ArrayList<>();
         result.add(groupId);
