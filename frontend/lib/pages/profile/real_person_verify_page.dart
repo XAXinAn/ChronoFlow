@@ -19,18 +19,17 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
   final _nameFocus = FocusNode(), _idFocus = FocusNode();
   bool _loading = false;
   String _status = '';
-  bool _isRegistration = false;
+
+  Map<String, dynamic>? get _regArgs {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is Map ? args.cast<String, dynamic>() : null;
+  }
 
   @override
   void initState() {
     super.initState();
     _nameFocus.addListener(() => setState(() {}));
     _idFocus.addListener(() => setState(() {}));
-    // Check early: if received registration args, mark as registration flow
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments;
-      _isRegistration = args is Map && args.containsKey('phone');
-    });
   }
 
   @override
@@ -44,13 +43,15 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
     if (name.length < 2) { MessageUtils.show(context, '请输入正确的姓名'); return; }
     if (!RegExp(r'^\d{17}[\dXx]$').hasMatch(idCard)) { MessageUtils.show(context, '请输入正确的18位身份证号'); return; }
 
+    final regArgs = _regArgs;
+
     setState(() { _loading = true; _status = '正在获取设备信息...'; });
     try {
       String metaInfo = '';
       try { await FaceVerifyBridge.init(); metaInfo = await FaceVerifyBridge.getMetaInfo(); } catch (_) {}
 
-      if (_isRegistration) {
-        await _registrationFlow(name, idCard, metaInfo);
+      if (regArgs != null) {
+        await _registrationFlow(regArgs, name, idCard, metaInfo);
       } else {
         await _profileFlow(name, idCard, metaInfo);
       }
@@ -60,8 +61,7 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
     }
   }
 
-  Future<void> _registrationFlow(String name, String idCard, String metaInfo) async {
-    final args = ModalRoute.of(context)!.settings.arguments as Map;
+  Future<void> _registrationFlow(Map<String, dynamic> args, String name, String idCard, String metaInfo) async {
     setState(() => _status = '正在初始化认证...');
     final authService = AuthService();
     final certifyId = await authService.registerInit(
@@ -116,10 +116,10 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
       ])));
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_isRegistration ? '实名认证 - 完成注册' : '实人认证')),
+      appBar: AppBar(title: Text(_regArgs != null ? '实名认证 - 完成注册' : '实人认证')),
       body: SingleChildScrollView(padding: const EdgeInsets.all(24), child: Column(children: [
         const SizedBox(height: 40),
-        Text(_isRegistration ? '最后一步：请完成实名认证' : '请填写真实身份信息',
+        Text(_regArgs != null ? '最后一步：请完成实名认证' : '请填写真实身份信息',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
         const SizedBox(height: 8),
         const Text('信息仅用于身份认证，加密存储', style: TextStyle(fontSize: 13, color: Colors.black45), textAlign: TextAlign.center),
