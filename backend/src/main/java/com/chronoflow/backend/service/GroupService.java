@@ -451,7 +451,13 @@ public class GroupService {
                         .eq("group_id", groupId)
                         .eq("user_id", userId)
         );
-        return member != null;
+        if (member != null) return true;
+        // Ancestor creators/admins are considered members of all descendant groups
+        Group group = groupMapper.selectById(groupId);
+        if (group != null) {
+            return isAncestorCreatorOrAdmin(userId, group.getParentId());
+        }
+        return false;
     }
 
     public boolean isAdmin(String groupId, Long userId) {
