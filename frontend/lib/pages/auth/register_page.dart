@@ -81,17 +81,18 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!RegExp(r'\d').hasMatch(_passwordController.text)) { _showMessage('密码需包含数字'); return; }
     if (_passwordController.text != _confirmPasswordController.text) { _showMessage('两次密码不一致'); return; }
 
-    setState(() => _isLoading = true);
-    try {
-      await AuthService().register(_usernameController.text.trim(), _phoneController.text.trim(),
-          _codeController.text.trim(), _passwordController.text);
-      if (!mounted) return;
+    // 跳转实名认证
+    final result = await Navigator.pushNamed(context, '/real-person-verify', arguments: {
+      'phone': _phoneController.text.trim(),
+      'code': _codeController.text.trim(),
+      'username': _usernameController.text.trim(),
+      'password': _passwordController.text,
+    });
+    if (result == true && mounted) {
       _showMessage('注册成功');
       await Future.delayed(const Duration(milliseconds: 800));
-      if (!mounted) return;
-      Navigator.pop(context);
-    } catch (e) { MessageUtils.showError(context, e); }
-    finally { if (mounted) setState(() => _isLoading = false); }
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   void _showMessage(String msg) {

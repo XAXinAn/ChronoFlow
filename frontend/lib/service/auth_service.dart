@@ -152,6 +152,33 @@ class AuthService {
     }
   }
 
+  Future<String> registerInit({required String username, required String phone,
+      required String code, required String password, required String metaInfo,
+      required String realName, required String idCardNumber}) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}$_authPath/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username, 'phone': phone, 'code': code,
+        'password': password, 'metaInfo': metaInfo, 'realName': realName, 'idCardNumber': idCardNumber}),
+    );
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['code'] == 200) {
+      return data['data']['certifyId'] as String;
+    }
+    throw Exception(data['message'] ?? '注册初始化失败');
+  }
+
+  Future<RegisterResponse> registerConfirm(String certifyId) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}$_authPath/register/confirm'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'certifyId': certifyId}),
+    );
+    if (response.statusCode == 200) return RegisterResponse.fromJson(jsonDecode(response.body));
+    final error = jsonDecode(response.body);
+    throw Exception(error['message'] ?? '注册确认失败');
+  }
+
   Future<RegisterResponse> register(String username, String phone, String code, String password) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}$_authPath/register'),
