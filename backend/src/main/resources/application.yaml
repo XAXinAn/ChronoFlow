@@ -11,8 +11,12 @@ spring:
       password: ${REDIS_PASSWORD:}
   ai:
     dashscope:
-      api-key: ${DASHSCOPE_API_KEY:}
+      api-key: ${DASHSCOPE_API_KEY:sk-a71a0e94b4854adaa8d34a148d4253d7}
       model: ${DASHSCOPE_MODEL:qwen-flash}
+
+logging:
+  level:
+    org.springframework.boot.autoconfigure: DEBUG
 
 mybatis-plus:
   type-aliases-package: com.chronoflow.backend.entity
