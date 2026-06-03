@@ -32,6 +32,22 @@ class _SelectPublishTargetPageState extends State<SelectPublishTargetPage> {
     }
   }
 
+  List<Group> _flatFiltered() {
+    final result = <Group>[];
+    void collect(List<Group> groups) {
+      for (final g in groups) {
+        if (g.isAdminOrCreator) result.add(g);
+        if (g.children != null) collect(g.children!);
+      }
+    }
+    collect(_myGroups);
+    return result;
+  }
+
+  List<Widget> _buildFlatItems(List<Group> groups) {
+    return groups.map((g) => _buildItem(g, g.depth)).toList();
+  }
+
   List<Widget> _buildTreeItems(List<Group> groups, int depth) {
     final items = <Widget>[];
     for (final g in groups) {
@@ -124,9 +140,9 @@ class _SelectPublishTargetPageState extends State<SelectPublishTargetPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (_myGroups.where((g) => g.isAdminOrCreator).isNotEmpty) ...[
+                      if (_flatFiltered().isNotEmpty) ...[
                         const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('群组', style: TextStyle(fontSize: 13, color: AppConstants.mediumGray, fontWeight: FontWeight.w500))),
-                        ..._buildTreeItems(_myGroups.where((g) => g.isAdminOrCreator).toList(), 0),
+                        ..._buildFlatItems(_flatFiltered()),
                       ],
                     ],
                   ),
