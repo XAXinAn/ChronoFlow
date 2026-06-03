@@ -30,3 +30,4 @@ frontend/ios/Runner/FaceVerifyPlugin.swift
 frontend/ios/Pods/
 frontend/ios/Flutter/.last_build_id
 start-prod.sh
+frontend/android/app/chronoflow.keystore
