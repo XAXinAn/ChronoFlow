@@ -27,9 +27,26 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistService tokenBlacklistService;
 
+    /**
+     * Step 1 of registration: validate registration fields + initiate face verification.
+     * Returns certifyId so the app can launch the face SDK. Account is NOT created yet.
+     */
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterVerifyRequest request) {
-        return ResponseEntity.ok(registerService.registerWithVerify(request));
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> register(
+            @Valid @RequestBody RegisterVerifyRequest request) {
+        String certifyId = registerService.initRegistration(request);
+        java.util.Map<String, String> data = java.util.Map.of("certifyId", certifyId);
+        return ResponseEntity.ok(ApiResponse.success("请完成人脸识别验证", data));
+    }
+
+    /**
+     * Step 2 of registration: confirm face verification result and create account.
+     * Backend calls DescribeFaceVerify, checks real-name uniqueness, then creates user.
+     */
+    @PostMapping("/register/confirm")
+    public ResponseEntity<RegisterResponse> confirmRegister(
+            @Valid @RequestBody RegisterConfirmRequest request) {
+        return ResponseEntity.ok(registerService.confirmRegistration(request));
     }
 
     // 发送短信验证码
