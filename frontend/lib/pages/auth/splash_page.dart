@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/gestures.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import '../../constants/app_constants.dart';
 import '../../service/auth_service.dart';
 import '../login_page.dart';
 import '../home_page.dart';
@@ -45,7 +48,7 @@ class _SplashPageState extends State<SplashPage> {
     if (!accepted) {
       _showPrivacyDialog();
     } else {
-      _continueToApp();
+      _checkUpdateThenContinue();
     }
   }
 
@@ -144,7 +147,7 @@ class _SplashPageState extends State<SplashPage> {
                     onPressed: () async {
                       await _savePrivacyAccepted();
                       Navigator.pop(context);
-                      _continueToApp();
+                      _checkUpdateThenContinue();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
@@ -306,6 +309,65 @@ class _SplashPageState extends State<SplashPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static const int _currentVersionCode = 1;
+  String _newVersion = '';
+  String _updateDownloadUrl = '';
+
+  Future<void> _checkUpdateThenContinue() async {
+    final hasUpdate = await _checkAppUpdate();
+    if (hasUpdate && mounted) {
+      _showUpdateDialog();
+    } else {
+      _continueToApp();
+    }
+  }
+
+  Future<bool> _checkAppUpdate() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConstants.baseUrl}/app/version'),
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final serverVersionCode = (data['versionCode'] as num?)?.toInt() ?? 1;
+        if (serverVersionCode > _currentVersionCode) {
+          _updateDownloadUrl = data['downloadUrl'] as String? ?? '';
+          _newVersion = data['version'] as String? ?? '';
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('发现新版本 $_newVersion'),
+        content: const Text('有新版本可用，请更新后使用'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _continueToApp();
+            },
+            child: const Text('稍后更新'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _continueToApp();
+            },
+            child: const Text('立即更新'),
+          ),
+        ],
       ),
     );
   }

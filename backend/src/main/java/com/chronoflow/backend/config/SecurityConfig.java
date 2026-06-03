@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/auth/send-sms", "/api/auth/sms-login",
                                 "/api/auth/send-email", "/api/auth/email-login",
                                 "/api/auth/risk-verify",
+                                "/api/app/version",
                                 "/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .anyRequest().authenticated()
