@@ -5,9 +5,7 @@ class AppConstants {
   // API 配置 - 通过 --dart-define=BASE_URL=... 在构建时切换
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    // Android模拟器访问宿主机用 http://10.0.2.2:8080/api
-    // 真机需要改成电脑的局域网IP，如 http://192.168.x.x:8080/api
-    defaultValue: 'http://localhost:8080/api',
+    defaultValue: 'http://8.136.20.182:8080/api',
   );
 
   // 主题色 - 黑白极简风格
