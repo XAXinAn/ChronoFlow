@@ -45,7 +45,7 @@ class _SelectPublishTargetPageState extends State<SelectPublishTargetPage> {
   }
 
   List<Widget> _buildFlatItems(List<Group> groups) {
-    return groups.map((g) => _buildItem(g, g.depth)).toList();
+    return groups.map((g) => _buildItem(g, 0)).toList();
   }
 
   List<Widget> _buildTreeItems(List<Group> groups, int depth) {
