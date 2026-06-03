@@ -49,3 +49,8 @@ aliyun:
     access-key-secret: ${ALIYUN_GREEN_ACCESS_KEY_SECRET:}
     service: ${ALIYUN_GREEN_SERVICE:ugc_moderation_byllm}
     endpoint: ${ALIYUN_GREEN_ENDPOINT:green-cip.cn-shanghai.aliyuncs.com}
+  cloudauth:
+    access-key-id: ${ALIYUN_CLOUDAUTH_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_CLOUDAUTH_ACCESS_KEY_SECRET:}
+    endpoint: ${ALIYUN_CLOUDAUTH_ENDPOINT:cloudauth.cn-shanghai.aliyuncs.com}
+    scene-id: ${ALIYUN_CLOUDAUTH_SCENE_ID:}

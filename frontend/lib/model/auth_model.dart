@@ -28,6 +28,9 @@ class LoginResponse {
   final bool riskRequired;
   final String? riskType;
   final String? riskToken;
+  final bool realNameVerified;
+  final String? realName;
+
   LoginResponse({
     required this.accessToken,
     required this.refreshToken,
@@ -40,6 +43,8 @@ class LoginResponse {
     this.riskRequired = false,
     this.riskType,
     this.riskToken,
+    this.realNameVerified = false,
+    this.realName,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -55,6 +60,8 @@ class LoginResponse {
       riskRequired: json['riskRequired'] ?? false,
       riskType: json['riskType'],
       riskToken: json['riskToken'],
+      realNameVerified: json['realNameVerified'] ?? false,
+      realName: json['realName'],
     );
   }
 

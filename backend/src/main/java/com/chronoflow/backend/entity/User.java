@@ -40,6 +40,18 @@ public class User implements UserDetails {
     @TableField("phone")
     private String phone;
 
+    @TableField("real_name_verified")
+    private Boolean realNameVerified;
+
+    @TableField("real_name")
+    private String realName;
+
+    @TableField("id_card_number")
+    private String idCardNumber;
+
+    @TableField("verified_at")
+    private LocalDateTime verifiedAt;
+
     @JsonIgnore
     @TableField("password")
     private String password;

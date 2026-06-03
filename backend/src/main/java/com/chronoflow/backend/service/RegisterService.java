@@ -49,6 +49,7 @@ public class RegisterService {
                 .nickname(nickname)
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .realNameVerified(false)
                 .build();
 
         userMapper.insert(user);

@@ -22,4 +22,7 @@ public class LoginResponse {
     private boolean riskRequired;  // 是否需要风控验证
     private String riskType;      // 风控类型：sms/email
     private String riskToken;      // 风控验证token
+    // 实人认证
+    private Boolean realNameVerified;
+    private String realName;
 }
