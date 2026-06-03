@@ -85,12 +85,14 @@ class ScheduleService {
     required String description,
     required String location,
     required DateTime time,
+    List<String>? publishTargetGroupIds,
   }) async {
     final body = {
       'title': title,
       'description': description,
       'location': location,
       'time': time.toIso8601String(),
+      'publishTargetGroupIds': publishTargetGroupIds ?? [],
     };
     final response = await ApiClient.post('$baseUrl/group?groupId=$groupId', body: body);
 

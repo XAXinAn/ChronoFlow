@@ -59,6 +59,13 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("加入成功", group));
     }
 
+    @GetMapping("/{groupId}/children")
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> getChildren(
+            @PathVariable String groupId) {
+        List<GroupResponse> children = groupService.getDirectChildren(groupId);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", children));
+    }
+
     @GetMapping("/info")
     public ResponseEntity<ApiResponse<GroupResponse>> getGroupInfoByInviteCode(
             HttpServletRequest request,

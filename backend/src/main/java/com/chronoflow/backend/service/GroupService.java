@@ -490,8 +490,26 @@ public class GroupService {
         return toResponse(group, memberCount, null, null);
     }
 
+    private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval, Boolean isAdminOrCreator, Boolean hasChildren) {
+        return GroupResponse.builder()
+                .id(group.getId())
+                .name(group.getName())
+                .description(group.getDescription())
+                .inviteCode(group.getInviteCode())
+                .memberCount(memberCount)
+                .creatorId(group.getCreatorId())
+                .createdAt(group.getCreatedAt())
+                .requireApproval(group.getRequireApproval())
+                .pendingApproval(pendingApproval)
+                .isAdminOrCreator(isAdminOrCreator)
+                .parentId(group.getParentId())
+                .depth(group.getDepth())
+                .hasChildren(hasChildren)
+                .build();
+    }
+
     private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval) {
-        return toResponse(group, memberCount, pendingApproval, null);
+        return toResponse(group, memberCount, pendingApproval, null, null);
     }
 
     public void updateMemberNickname(String groupId, Long userId, String nickname) {
@@ -649,6 +667,23 @@ public class GroupService {
     /**
      * Get all descendant group IDs (including self) for schedule publishing.
      */
+    /**
+     * Get direct children of a group.
+     */
+    public List<GroupResponse> getDirectChildren(String parentGroupId) {
+        List<Group> children = groupMapper.selectList(
+                new QueryWrapper<Group>().eq("parent_id", parentGroupId));
+        return children.stream()
+                .map(g -> {
+                    int count = groupMemberMapper.selectCount(
+                            new QueryWrapper<GroupMember>().eq("group_id", g.getId())).intValue();
+                    boolean hasChild = groupMapper.selectCount(
+                            new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
+                    return toResponse(g, count, null, null, hasChild);
+                })
+                .collect(Collectors.toList());
+    }
+
     public List<String> getDescendantGroupIds(String groupId) {
         List<String> result = new java.util.ArrayList<>();
         result.add(groupId);
