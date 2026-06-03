@@ -149,6 +149,48 @@ class GroupService {
     throw Exception(data['message'] ?? '获取加群申请失败');
   }
 
+  Future<List<Group>> getMyGroupTree() async {
+    final response = await ApiClient.get('$_baseUrl/my/tree');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取群组树失败');
+  }
+
+  Future<void> createSubgroupRequest(String parentGroupId, String name, String description) async {
+    final response = await ApiClient.post(
+      '$_baseUrl/$parentGroupId/subgroup-requests',
+      body: {'name': name, 'description': description},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '提交申请失败');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSubgroupRequests(String parentGroupId) async {
+    final response = await ApiClient.get('$_baseUrl/$parentGroupId/subgroup-requests');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.cast<Map<String, dynamic>>();
+    }
+    throw Exception(data['message'] ?? '获取申请列表失败');
+  }
+
+  Future<void> approveSubgroupRequest(String parentGroupId, int applicantId, bool approve) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$parentGroupId/subgroup-requests/$applicantId',
+      body: {'approve': approve},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '审核失败');
+    }
+  }
+
   Future<Group> getGroupInfoByInviteCode(String inviteCode) async {
     final response = await ApiClient.get('$_baseUrl/info', params: {'inviteCode': inviteCode});
     final data = json.decode(response);

@@ -89,6 +89,44 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
+  Future<void> _showSubgroupRequests() async {
+    final gs = GroupService();
+    try {
+      final requests = await gs.getSubgroupRequests(widget.group.id);
+      if (!mounted) return;
+      if (requests.isEmpty) {
+        MessageUtils.show(context, '暂无子群组创建申请');
+        return;
+      }
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('子群组创建申请', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ...requests.map((r) => ListTile(
+                title: Text(r['name'] ?? ''),
+                subtitle: Text('${r['applicantName'] ?? ''}  ${r['description'] ?? ''}'),
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, false); }),
+                  IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, true); MessageUtils.show(context, '子群组创建成功'); }),
+                ]),
+              )),
+            ]),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) MessageUtils.showError(context, e);
+    }
+  }
+
   Future<void> _dissolveGroup() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -388,7 +426,79 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 const SizedBox(height: 2),
                                 Text(
                                   '查看和处理成员的加群申请',
-                                  style: TextStyle(
+                                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // 审核子群组创建申请
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black12),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showSubgroupRequests(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(children: [
+                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(12)),
+                          child: Icon(Icons.account_tree_outlined, size: 22, color: Colors.teal.shade400)),
+                        const SizedBox(width: 16),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('审核子群组申请', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 2),
+                          Text('查看和处理子群组创建申请', style: TextStyle(fontSize: 13, color: Colors.black54)),
+                        ])),
+                        Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            if (_canManageSettings) ...[
+              const SizedBox(height: 16),
+              // 审核加群申请按钮
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black12),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(children: [
+                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+                          child: Icon(Icons.badge_outlined, size: 22, color: Colors.blue.shade400)),
+                        const SizedBox(width: 16),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('审核加群申请', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 2),
+                          Text('查看和处理成员的加群申请', style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.black54,
                                   ),

@@ -75,6 +75,35 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
   }
 
+  Future<void> _requestSubgroup() async {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('申请创建子群组'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nameController, decoration: const InputDecoration(hintText: '子群组名称', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: descController, decoration: const InputDecoration(hintText: '描述（选填）', border: OutlineInputBorder()), maxLines: 2),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('提交')),
+        ],
+      ),
+    );
+    if (result != true) return;
+    try {
+      final gs = GroupService();
+      await gs.createSubgroupRequest(widget.group.id, nameController.text.trim(), descController.text.trim());
+      if (!mounted) return;
+      MessageUtils.show(context, '申请已提交，请等待群主/管理员审核');
+    } catch (e) {
+      if (mounted) MessageUtils.showError(context, e);
+    }
+  }
+
   Future<void> _refreshGroupInfo() async {
     try {
       // Re-check admin status via member list (more targeted than loading all groups)
@@ -109,15 +138,44 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (widget.group.description.isNotEmpty) ...[
-                    Text(
-                      widget.group.description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
+                    Text(widget.group.description, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                    const SizedBox(height: 16),
+                  ],
+                  // 层级信息
+                  if (widget.group.parentId != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.account_tree, size: 16, color: Colors.blue.shade400),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('子群组 (第${widget.group.depth}层)',
+                            style: TextStyle(fontSize: 13, color: Colors.blue.shade700, fontWeight: FontWeight.w500)),
+                        ),
+                      ]),
+                    ),
+                  ],
+                  // 申请创建子群组按钮
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _requestSubgroup(),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('申请创建子群组'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black54,
+                          side: const BorderSide(color: Colors.black12),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
                   // 成员数
                   InkWell(
                     onTap: () async {

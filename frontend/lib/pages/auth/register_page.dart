@@ -115,6 +115,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   /// Validate all form fields. Returns null if valid, error message if invalid.
+  /// Real name / ID card are optional for testing.
   String? _validateForm() {
     if (!_privacyChecked) return '请阅读并同意隐私政策和用户协议';
     if (_usernameController.text.isEmpty || _usernameController.text.length < 3) return '用户名至少3位';
@@ -126,8 +127,12 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!RegExp(r'[a-z]').hasMatch(_passwordController.text)) return '密码需包含小写字母';
     if (!RegExp(r'\d').hasMatch(_passwordController.text)) return '密码需包含数字';
     if (_passwordController.text != _confirmPasswordController.text) return '两次密码不一致';
-    if (_realNameController.text.trim().length < 2) return '请输入正确的姓名';
-    if (!RegExp(r'^\d{17}[\dXx]$').hasMatch(_idCardController.text.trim())) return '请输入正确的18位身份证号';
+    // Real name / ID are optional for testing
+    final hasRealName = _realNameController.text.trim().isNotEmpty;
+    final hasIdCard = _idCardController.text.trim().isNotEmpty;
+    if (hasRealName != hasIdCard) return '姓名和身份证号要么都填，要么都不填';
+    if (hasRealName && _realNameController.text.trim().length < 2) return '请输入正确的姓名';
+    if (hasIdCard && !RegExp(r'^\d{17}[\dXx]$').hasMatch(_idCardController.text.trim())) return '请输入正确的18位身份证号';
     return null;
   }
 
@@ -145,16 +150,15 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      // Step 1: Get MetaInfo from face SDK (stub for now)
-      String metaInfo;
-      try {
-        metaInfo = await _getMetaInfo();
-      } catch (e) {
-        metaInfo = ''; // fallback: allow empty metaInfo during development
+      // Step 1: Get MetaInfo from face SDK
+      String metaInfo = '';
+      final hasRealName = _realNameController.text.trim().isNotEmpty;
+      if (hasRealName) {
+        try { metaInfo = await _getMetaInfo(); } catch (_) {}
       }
 
       // Step 2: Send registration data to backend, get certifyId
-      setState(() => _statusMessage = '正在初始化认证...');
+      setState(() => _statusMessage = '正在注册...');
       final authService = AuthService();
       final certifyId = await authService.registerInit(
         username: _usernameController.text.trim(),
@@ -166,25 +170,29 @@ class _RegisterPageState extends State<RegisterPage> {
         idCardNumber: _idCardController.text.trim(),
       );
 
-      // Step 3: Launch face verification SDK
+      // Step 3: If certifyId is empty, registration already completed (testing mode)
+      if (certifyId.isEmpty) {
+        if (!mounted) return;
+        setState(() { _isLoading = false; _stage = 'done'; });
+        _showMessage('注册成功');
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
+        Navigator.pop(context);
+        return;
+      }
+
+      // Step 4: Launch face verification SDK
       setState(() => _statusMessage = '正在进行人脸识别，请按提示操作...');
       final faceResult = await _launchFaceVerify(certifyId);
       if (!faceResult) {
         if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-          _stage = 'form';
-          _statusMessage = '';
-        });
+        setState(() { _isLoading = false; _stage = 'form'; _statusMessage = ''; });
         _showMessage('人脸识别未通过，请重试');
         return;
       }
 
-      // Step 4: Confirm registration with backend
-      setState(() {
-        _stage = 'confirming';
-        _statusMessage = '正在完成注册...';
-      });
+      // Step 5: Confirm registration with backend
+      setState(() { _stage = 'confirming'; _statusMessage = '正在完成注册...'; });
       await authService.registerConfirm(certifyId);
 
       if (!mounted) return;
@@ -277,7 +285,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 32),
               const Text('创建账号', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200), textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              const Text('注册需要进行实名认证', style: TextStyle(fontSize: 13, color: Colors.black45), textAlign: TextAlign.center),
+              const Text('实名认证（可选，跳过则注册后不可恢复）', style: TextStyle(fontSize: 13, color: Colors.black45), textAlign: TextAlign.center),
               const SizedBox(height: 32),
               // Account info section
               const Text('账号信息', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),

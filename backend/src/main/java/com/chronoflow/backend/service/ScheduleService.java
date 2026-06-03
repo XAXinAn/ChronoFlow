@@ -8,9 +8,11 @@ import com.chronoflow.backend.dto.ScheduleResponse;
 import com.chronoflow.backend.entity.Group;
 import com.chronoflow.backend.entity.GroupMember;
 import com.chronoflow.backend.entity.Schedule;
+import com.chronoflow.backend.entity.SchedulePublishTarget;
 import com.chronoflow.backend.mapper.GroupMapper;
 import com.chronoflow.backend.mapper.GroupMemberMapper;
 import com.chronoflow.backend.mapper.ScheduleMapper;
+import com.chronoflow.backend.mapper.SchedulePublishTargetMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,7 @@ public class ScheduleService {
     private final GroupMemberMapper groupMemberMapper;
     private final GroupService groupService;
     private final ContentModerationService contentModerationService;
+    private final SchedulePublishTargetMapper publishTargetMapper;
 
     public ScheduleResponse createSchedule(Long userId, ScheduleRequest request) {
         moderateScheduleContent(request);
@@ -61,7 +64,6 @@ public class ScheduleService {
             throw new BusinessException("群组不存在");
         }
 
-        // 检查权限：必须是群主或管理员
         if (!isCreatorOrAdmin(userId, group)) {
             throw new BusinessException("只有群主/管理员可以创建群组日程");
         }
@@ -76,6 +78,24 @@ public class ScheduleService {
                 .build();
 
         scheduleMapper.insert(schedule);
+
+        // Save publish targets
+        if (request.getPublishTargetGroupIds() != null && !request.getPublishTargetGroupIds().isEmpty()) {
+            for (String targetGroupId : request.getPublishTargetGroupIds()) {
+                // Verify target is a descendant of this group
+                if (!groupId.equals(targetGroupId)) {
+                    List<String> descendantIds = groupService.getDescendantGroupIds(groupId);
+                    if (!descendantIds.contains(targetGroupId)) {
+                        throw new BusinessException("下发目标群组必须是当前群组的子孙群组");
+                    }
+                }
+                SchedulePublishTarget target = new SchedulePublishTarget();
+                target.setScheduleId(schedule.getId());
+                target.setTargetGroupId(targetGroupId);
+                publishTargetMapper.insert(target);
+            }
+        }
+
         return toResponse(schedule, group.getName());
     }
 
@@ -254,14 +274,31 @@ public class ScheduleService {
             return new ArrayList<>();
         }
 
+        // Schedules created in user's groups
         List<Schedule> groupSchedules = scheduleMapper.selectList(
                 new QueryWrapper<Schedule>()
                         .in("group_id", groupIds)
                         .orderByDesc("schedule_time")
         );
 
+        // Also include schedules published to user's groups from ancestor groups
+        List<Schedule> publishedSchedules = getPublishedSchedules(groupIds);
+        // Merge and deduplicate
+        java.util.Set<Long> seenIds = new java.util.HashSet<>();
+        List<Schedule> allSchedules = new ArrayList<>();
+        for (Schedule s : groupSchedules) {
+            if (seenIds.add(s.getId())) allSchedules.add(s);
+        }
+        for (Schedule s : publishedSchedules) {
+            if (seenIds.add(s.getId())) allSchedules.add(s);
+        }
+        // Re-sort
+        allSchedules.sort((a, b) -> b.getTime().compareTo(a.getTime()));
+
+        allSchedules.sort((a, b) -> b.getTime().compareTo(a.getTime()));
+
         // Batch load all referenced groups in one query to avoid N+1
-        List<String> distinctGroupIds = groupSchedules.stream()
+        List<String> distinctGroupIds = allSchedules.stream()
                 .map(Schedule::getGroupId)
                 .distinct()
                 .collect(Collectors.toList());
@@ -429,5 +466,26 @@ public class ScheduleService {
                 .time(schedule.getTime())
                 .canEditOrDelete(canEditOrDelete)
                 .build();
+    }
+
+    /**
+     * Find schedules published to any of the given groupIds from ancestor groups.
+     */
+    private List<Schedule> getPublishedSchedules(List<String> groupIds) {
+        List<SchedulePublishTarget> targets = publishTargetMapper.selectList(
+                new QueryWrapper<SchedulePublishTarget>()
+                        .in("target_group_id", groupIds));
+        if (targets.isEmpty()) return new ArrayList<>();
+
+        List<Long> scheduleIds = targets.stream()
+                .map(SchedulePublishTarget::getScheduleId)
+                .distinct()
+                .collect(Collectors.toList());
+        if (scheduleIds.isEmpty()) return new ArrayList<>();
+
+        return scheduleMapper.selectList(
+                new QueryWrapper<Schedule>()
+                        .in("id", scheduleIds)
+                        .orderByDesc("schedule_time"));
     }
 }

@@ -9,10 +9,13 @@ import com.chronoflow.backend.entity.Group;
 import com.chronoflow.backend.entity.GroupMember;
 import com.chronoflow.backend.entity.JoinRequest;
 import com.chronoflow.backend.entity.JoinRequestStatus;
+import com.chronoflow.backend.entity.SubgroupCreationRequest;
+import com.chronoflow.backend.entity.SubgroupCreationRequestStatus;
 import com.chronoflow.backend.entity.User;
 import com.chronoflow.backend.mapper.GroupMapper;
 import com.chronoflow.backend.mapper.GroupMemberMapper;
 import com.chronoflow.backend.mapper.JoinRequestMapper;
+import com.chronoflow.backend.mapper.SubgroupCreationRequestMapper;
 import com.chronoflow.backend.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,7 @@ public class GroupService {
     private final GroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
     private final JoinRequestMapper joinRequestMapper;
+    private final SubgroupCreationRequestMapper subgroupCreationRequestMapper;
     private final UserMapper userMapper;
     private final ContentModerationService contentModerationService;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -510,5 +514,167 @@ public class GroupService {
         if (reason != null) {
             throw new ContentModerationException(reason);
         }
+    }
+
+    // ==================== 层级群组相关 ====================
+
+    /**
+     * Submit a request to create a sub-group under the given parent group.
+     */
+    public void createSubgroupRequest(String parentGroupId, Long userId, String name, String description) {
+        Group parent = groupMapper.selectById(parentGroupId);
+        if (parent == null) {
+            throw new BusinessException("父群组不存在");
+        }
+        if (!isGroupMember(userId, parentGroupId)) {
+            throw new BusinessException("你不是该群组成员，无法申请创建子群组");
+        }
+        if (parent.getDepth() != null && parent.getDepth() >= 50) {
+            throw new BusinessException("已达最大层级深度（50层）");
+        }
+        moderate(name, "子群组名称");
+        moderate(description, "子群组描述");
+
+        SubgroupCreationRequest request = new SubgroupCreationRequest();
+        request.setParentGroupId(parentGroupId);
+        request.setApplicantId(userId);
+        request.setName(name);
+        request.setDescription(description);
+        request.setStatus(SubgroupCreationRequestStatus.PENDING.name().toLowerCase());
+        request.setCreatedAt(LocalDateTime.now());
+        request.setUpdatedAt(LocalDateTime.now());
+        subgroupCreationRequestMapper.insert(request);
+    }
+
+    /**
+     * Get pending sub-group creation requests for a parent group.
+     */
+    public List<SubgroupCreationRequest> getSubgroupCreationRequests(String parentGroupId) {
+        return subgroupCreationRequestMapper.selectList(
+                new QueryWrapper<SubgroupCreationRequest>()
+                        .eq("parent_group_id", parentGroupId)
+                        .eq("status", SubgroupCreationRequestStatus.PENDING.name().toLowerCase())
+        );
+    }
+
+    /**
+     * Approve or reject a sub-group creation request.
+     * On approval: creates the sub-group with the applicant as its creator (group owner).
+     */
+    @Transactional
+    public GroupResponse approveSubgroupRequest(Long reviewerId, String parentGroupId, Long targetUserId, boolean approve) {
+        Group parent = groupMapper.selectById(parentGroupId);
+        if (parent == null) {
+            throw new BusinessException("父群组不存在");
+        }
+        if (!isCreatorOrAdmin(reviewerId, parent)) {
+            throw new BusinessException("只有群主/管理员可以审核子群组创建申请");
+        }
+
+        SubgroupCreationRequest request = subgroupCreationRequestMapper.selectOne(
+                new QueryWrapper<SubgroupCreationRequest>()
+                        .eq("parent_group_id", parentGroupId)
+                        .eq("applicant_id", targetUserId)
+                        .eq("status", SubgroupCreationRequestStatus.PENDING.name().toLowerCase())
+        );
+        if (request == null) {
+            throw new BusinessException("没有待审核的子群组创建申请");
+        }
+
+        if (!approve) {
+            request.setStatus(SubgroupCreationRequestStatus.REJECTED.name().toLowerCase());
+            subgroupCreationRequestMapper.updateById(request);
+            return null;
+        }
+
+        // Create the sub-group
+        int childDepth = (parent.getDepth() != null ? parent.getDepth() : 0) + 1;
+        if (childDepth > 50) {
+            throw new BusinessException("已达最大层级深度（50层）");
+        }
+
+        Group subGroup = new Group();
+        subGroup.setId(UUID.randomUUID().toString().replace("-", ""));
+        subGroup.setName(request.getName());
+        subGroup.setDescription(request.getDescription());
+        subGroup.setInviteCode(generateUniqueInviteCode());
+        subGroup.setCreatorId(targetUserId);
+        subGroup.setRequireApproval(false);
+        subGroup.setParentId(parentGroupId);
+        subGroup.setDepth(childDepth);
+        subGroup.setCreatedAt(LocalDateTime.now());
+        subGroup.setUpdatedAt(LocalDateTime.now());
+        groupMapper.insert(subGroup);
+
+        // Applicant becomes group owner (admin member)
+        GroupMember member = new GroupMember();
+        member.setGroupId(subGroup.getId());
+        member.setUserId(targetUserId);
+        member.setNickname(getUserNickname(targetUserId));
+        member.setIsAdmin(true);
+        member.setJoinedAt(LocalDateTime.now());
+        groupMemberMapper.insert(member);
+
+        // Mark request as approved
+        request.setStatus(SubgroupCreationRequestStatus.APPROVED.name().toLowerCase());
+        request.setUpdatedAt(LocalDateTime.now());
+        subgroupCreationRequestMapper.updateById(request);
+
+        return toResponse(subGroup, 1);
+    }
+
+    /**
+     * Build tree of groups for a user: root groups + their descendants.
+     */
+    public List<GroupResponse> getMyGroupTree(Long userId) {
+        List<GroupResponse> flatList = getMyGroups(userId);
+        return buildTree(flatList, null);
+    }
+
+    private List<GroupResponse> buildTree(List<GroupResponse> all, String parentId) {
+        List<GroupResponse> tree = new java.util.ArrayList<>();
+        for (GroupResponse g : all) {
+            boolean match = (parentId == null && g.getParentId() == null)
+                    || (parentId != null && parentId.equals(g.getParentId()));
+            if (match) {
+                List<GroupResponse> children = buildTree(all, g.getId());
+                g.setHasChildren(!children.isEmpty());
+                g.setChildren(children.isEmpty() ? null : children);
+                tree.add(g);
+            }
+        }
+        return tree;
+    }
+
+    /**
+     * Get all descendant group IDs (including self) for schedule publishing.
+     */
+    public List<String> getDescendantGroupIds(String groupId) {
+        List<String> result = new java.util.ArrayList<>();
+        result.add(groupId);
+        collectDescendantIds(groupId, result);
+        return result;
+    }
+
+    private void collectDescendantIds(String parentId, List<String> result) {
+        List<Group> children = groupMapper.selectList(
+                new QueryWrapper<Group>().eq("parent_id", parentId));
+        for (Group child : children) {
+            result.add(child.getId());
+            collectDescendantIds(child.getId(), result);
+        }
+    }
+
+    /**
+     * Get ancestor group IDs up to root (for schedule visibility).
+     */
+    public List<String> getAncestorGroupIds(String groupId) {
+        List<String> result = new java.util.ArrayList<>();
+        Group current = groupMapper.selectById(groupId);
+        while (current != null && current.getParentId() != null) {
+            result.add(current.getParentId());
+            current = groupMapper.selectById(current.getParentId());
+        }
+        return result;
     }
 }

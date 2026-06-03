@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -28,4 +29,7 @@ public class ScheduleRequest {
     @NotNull(message = "日程时间不能为空")
     private LocalDateTime time;
     private String groupId;
+
+    // Sub-group IDs to publish this schedule to (empty = only this group)
+    private List<String> publishTargetGroupIds;
 }

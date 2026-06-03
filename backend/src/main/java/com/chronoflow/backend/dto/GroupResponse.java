@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -22,4 +23,9 @@ public class GroupResponse {
     private Boolean requireApproval;
     private Boolean pendingApproval;
     private Boolean isAdminOrCreator;
+    // Hierarchy fields
+    private String parentId;
+    private Integer depth;
+    private Boolean hasChildren;
+    private List<GroupResponse> children;
 }

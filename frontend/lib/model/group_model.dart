@@ -9,6 +9,10 @@ class Group {
   final bool requireApproval;
   final bool pendingApproval;
   final bool isAdminOrCreator;
+  final String? parentId;
+  final int depth;
+  final bool hasChildren;
+  final List<Group>? children;
 
   Group({
     required this.id,
@@ -21,6 +25,10 @@ class Group {
     required this.requireApproval,
     this.pendingApproval = false,
     this.isAdminOrCreator = false,
+    this.parentId,
+    this.depth = 0,
+    this.hasChildren = false,
+    this.children,
   });
 
   factory Group.fromJson(Map<String, dynamic> json) {
@@ -37,6 +45,12 @@ class Group {
       requireApproval: json['requireApproval'] ?? false,
       pendingApproval: json['pendingApproval'] ?? false,
       isAdminOrCreator: json['isAdminOrCreator'] ?? false,
+      parentId: json['parentId'],
+      depth: json['depth'] ?? 0,
+      hasChildren: json['hasChildren'] ?? false,
+      children: json['children'] != null
+          ? (json['children'] as List).map((e) => Group.fromJson(e)).toList()
+          : null,
     );
   }
 

@@ -12,29 +12,23 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("`groups`")
-public class Group {
+@TableName("subgroup_creation_requests")
+public class SubgroupCreationRequest {
 
-    @TableId
-    private String id;
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    @TableField("parent_group_id")
+    private String parentGroupId;
+
+    @TableField("applicant_id")
+    private Long applicantId;
 
     private String name;
 
     private String description;
 
-    @TableField("invite_code")
-    private String inviteCode;
-
-    @TableField("creator_id")
-    private Long creatorId;
-
-    @TableField("require_approval")
-    private Boolean requireApproval;
-
-    @TableField("parent_id")
-    private String parentId;
-
-    private Integer depth;
+    private String status;
 
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

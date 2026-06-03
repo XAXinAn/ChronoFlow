@@ -75,14 +75,20 @@ public class RegisterService {
             throw new ContentModerationException(reason);
         }
 
-        // 5. Initiate face verification via Alibaba Cloud
+        // 5. If metaInfo is empty, skip real-person verification (testing mode)
+        if (request.getMetaInfo() == null || request.getMetaInfo().isBlank()) {
+            return createUserDirectly(request.getPhone(), request.getUsername(),
+                    request.getPassword(), request.getRealName(), request.getIdCardNumber());
+        }
+
+        // 6. Initiate face verification via Alibaba Cloud
         String certifyId = realPersonVerificationService.initFaceVerify(
                 request.getMetaInfo(),
                 request.getRealName(),
                 request.getIdCardNumber(),
-                0L); // userId is 0 because user doesn't exist yet
+                0L);
 
-        // 6. Store pending registration data in Redis (TTL 30 min)
+        // 7. Store pending registration data in Redis (TTL 30 min)
         String pendingKey = PENDING_REG_KEY_PREFIX + certifyId;
         PendingRegistration pending = new PendingRegistration(
                 request.getPhone(),
@@ -98,6 +104,33 @@ public class RegisterService {
         }
 
         return certifyId;
+    }
+
+    /**
+     * Create user directly without real-person verification (testing mode).
+     * Returns empty string as certifyId to signal the frontend that verification was skipped.
+     */
+    private String createUserDirectly(String phone, String username, String password,
+                                       String realName, String idCardNumber) {
+        String lastFourPhone = phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone;
+        String nickname = lastFourPhone + "用户";
+
+        String encryptedIdCard = (realName != null && !realName.isBlank())
+                ? CryptoUtil.encrypt(idCardNumber, cryptoSecret) : null;
+
+        User user = User.builder()
+                .username(username)
+                .nickname(nickname)
+                .phone(phone)
+                .password(passwordEncoder.encode(password))
+                .realNameVerified(realName != null && !realName.isBlank())
+                .realName(realName != null && !realName.isBlank() ? realName : null)
+                .idCardNumber(encryptedIdCard)
+                .verifiedAt(realName != null && !realName.isBlank() ? java.time.LocalDateTime.now() : null)
+                .build();
+
+        userMapper.insert(user);
+        return ""; // empty = skip verification
     }
 
     /**

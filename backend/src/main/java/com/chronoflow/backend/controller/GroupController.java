@@ -34,6 +34,13 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("获取成功", groups));
     }
 
+    @GetMapping("/my/tree")
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> getMyGroupTree(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        List<GroupResponse> tree = groupService.getMyGroupTree(userId);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", tree));
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<GroupResponse>> createGroup(
             HttpServletRequest request,
@@ -231,6 +238,65 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
     }
 
+    // ==================== 子群组相关 ====================
+
+    @PostMapping("/{parentGroupId}/subgroup-requests")
+    public ResponseEntity<ApiResponse<Void>> createSubgroupRequest(
+            HttpServletRequest request,
+            @PathVariable String parentGroupId,
+            @RequestBody Map<String, String> body) {
+        Long userId = getUserIdFromRequest(request);
+        String name = body.get("name");
+        String description = body.getOrDefault("description", "");
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("子群组名称不能为空"));
+        }
+        groupService.createSubgroupRequest(parentGroupId, userId, name, description);
+        return ResponseEntity.ok(ApiResponse.success("申请已提交", null));
+    }
+
+    @GetMapping("/{parentGroupId}/subgroup-requests")
+    public ResponseEntity<ApiResponse<List<SubgroupRequestResponse>>> getSubgroupRequests(
+            HttpServletRequest request,
+            @PathVariable String parentGroupId) {
+        Long userId = getUserIdFromRequest(request);
+        if (!groupService.isCreatorOrAdmin(userId, parentGroupId)) {
+            return ResponseEntity.status(403).body(ApiResponse.error("无权查看"));
+        }
+        List<com.chronoflow.backend.entity.SubgroupCreationRequest> requests =
+                groupService.getSubgroupCreationRequests(parentGroupId);
+        List<SubgroupRequestResponse> list = requests.stream()
+                .map(r -> {
+                    User user = userMapper.selectById(r.getApplicantId());
+                    return SubgroupRequestResponse.builder()
+                            .id(r.getId())
+                            .applicantId(r.getApplicantId())
+                            .applicantName(user != null ? user.getUsername() : "未知用户")
+                            .name(r.getName())
+                            .description(r.getDescription())
+                            .createdAt(r.getCreatedAt())
+                            .build();
+                })
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success("获取成功", list));
+    }
+
+    @PutMapping("/{parentGroupId}/subgroup-requests/{targetUserId}")
+    public ResponseEntity<ApiResponse<GroupResponse>> approveSubgroupRequest(
+            HttpServletRequest request,
+            @PathVariable String parentGroupId,
+            @PathVariable Long targetUserId,
+            @RequestBody Map<String, Boolean> body) {
+        Long userId = getUserIdFromRequest(request);
+        Boolean approve = body.get("approve");
+        if (approve == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少approve参数"));
+        }
+        GroupResponse subGroup = groupService.approveSubgroupRequest(
+                userId, parentGroupId, targetUserId, approve);
+        return ResponseEntity.ok(ApiResponse.success(approve ? "已创建子群组" : "已拒绝", subGroup));
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
@@ -265,6 +331,19 @@ public class GroupController {
     public static class GroupMembersResponse {
         private Long creatorId;
         private List<GroupMemberResponse> members;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class SubgroupRequestResponse {
+        private Long id;
+        private Long applicantId;
+        private String applicantName;
+        private String name;
+        private String description;
+        private java.time.LocalDateTime createdAt;
     }
 
     @lombok.Data
