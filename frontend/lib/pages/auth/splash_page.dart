@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/gestures.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_constants.dart';
 import '../../service/auth_service.dart';
 import '../login_page.dart';
@@ -344,6 +345,13 @@ class _SplashPageState extends State<SplashPage> {
     return false;
   }
 
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   void _showUpdateDialog() {
     showDialog(
       context: context,
@@ -361,8 +369,13 @@ class _SplashPageState extends State<SplashPage> {
             child: const Text('稍后更新'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
+            onPressed: () async {
+              if (_updateDownloadUrl.isNotEmpty) {
+                try {
+                  await _launchUrl(_updateDownloadUrl);
+                } catch (_) {}
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
               _continueToApp();
             },
             child: const Text('立即更新'),
