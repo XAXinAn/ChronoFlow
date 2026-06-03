@@ -27,7 +27,7 @@ class _SelectPublishTargetsPageState extends State<SelectPublishTargetsPage> {
   Future<void> _load() async {
     try {
       final flatList = await _groupService.getDescendantTree(widget.rootGroupId);
-      if (mounted) setState(() { _tree = _buildTree(flatList, null); _loading = false; });
+      if (mounted) setState(() { _tree = _buildTree(flatList, widget.rootGroupId); _loading = false; });
     } catch (e) { if (mounted) setState(() => _loading = false); MessageUtils.showError(context, e); }
   }
 
