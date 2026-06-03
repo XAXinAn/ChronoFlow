@@ -12,6 +12,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   lpinyin: ^2.0.3
+  url_launcher: ^6.3.0
   http: ^1.2.0
   flutter_secure_storage: ^10.3.0
   shared_preferences: ^2.2.2
