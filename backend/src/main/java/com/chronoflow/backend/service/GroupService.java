@@ -638,6 +638,38 @@ public class GroupService {
         return buildTree(flatList, null);
     }
 
+    /**
+     * Get group tree for schedule publishing: includes descendant groups
+     * where the user is an ancestor creator/admin, even if not a member.
+     */
+    public List<GroupResponse> getPublishTargetTree(Long userId) {
+        List<GroupResponse> flatList = getMyGroups(userId);
+        java.util.Set<String> existingIds = flatList.stream()
+                .map(GroupResponse::getId).collect(Collectors.toSet());
+        java.util.Set<String> rootGroupIds = new java.util.HashSet<>();
+        List<Group> createdGroups = groupMapper.selectList(
+                new QueryWrapper<Group>().eq("creator_id", userId));
+        for (Group g : createdGroups) rootGroupIds.add(g.getId());
+        List<GroupMember> adminMemberships = groupMemberMapper.selectList(
+                new QueryWrapper<GroupMember>()
+                        .eq("user_id", userId).eq("is_admin", true));
+        for (GroupMember m : adminMemberships) rootGroupIds.add(m.getGroupId());
+        for (String rootId : rootGroupIds) {
+            List<String> descendantIds = getDescendantGroupIds(rootId);
+            for (String descId : descendantIds) {
+                if (!existingIds.contains(descId)) {
+                    Group desc = groupMapper.selectById(descId);
+                    if (desc != null) {
+                        int count = groupMemberMapper.selectCount(
+                                new QueryWrapper<GroupMember>().eq("group_id", descId)).intValue();
+                        flatList.add(toResponse(desc, count));
+                    }
+                }
+            }
+        }
+        return buildTree(flatList, null);
+    }
+
     private List<GroupResponse> buildTree(List<GroupResponse> all, String parentId) {
         List<GroupResponse> tree = new java.util.ArrayList<>();
         java.util.Set<String> parentIdsInList = all.stream()

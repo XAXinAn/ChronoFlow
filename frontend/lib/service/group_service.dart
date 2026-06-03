@@ -159,6 +159,16 @@ class GroupService {
     throw Exception(data['message'] ?? '获取群组树失败');
   }
 
+  Future<List<Group>> getPublishTargetTree() async {
+    final response = await ApiClient.get('$_baseUrl/my/tree/publish');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取下发目标失败');
+  }
+
   Future<void> createSubgroupRequest(String parentGroupId, String name, String description) async {
     final response = await ApiClient.post(
       '$_baseUrl/$parentGroupId/subgroup-requests',

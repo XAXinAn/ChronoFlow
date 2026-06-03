@@ -41,6 +41,13 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("获取成功", tree));
     }
 
+    @GetMapping("/my/tree/publish")
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> getPublishTargetTree(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        List<GroupResponse> tree = groupService.getPublishTargetTree(userId);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", tree));
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<GroupResponse>> createGroup(
             HttpServletRequest request,
