@@ -45,6 +45,9 @@ flutter {
 }
 
 dependencies {
+    // ML Kit Chinese text recognition bundled model (for devices without Google Play)
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+
     // Alibaba Cloud Face Verification SDK (v2.3.48)
     implementation(fileTree(mapOf("dir" to "libs", "includes" to listOf("*.aar"))))
 
