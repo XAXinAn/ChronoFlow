@@ -19,7 +19,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@ConditionalOnBean(ChatModel.class)
 public class NotificationAiService {
 
     private final ChatModel chatModel;
