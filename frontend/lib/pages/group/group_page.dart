@@ -84,7 +84,10 @@ class _GroupPageState extends State<GroupPage> {
                           ]))
                         : RefreshIndicator(
                             onRefresh: _loadGroups,
-                            child: ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: _buildTreeList(_groups, 0)),
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              children: _buildTreeList(_groups, 0)),
                           ),
           ),
         ],
