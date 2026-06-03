@@ -24,7 +24,7 @@ import java.util.Set;
  * - User info + verification endpoints (/api/user/info, /api/user/real-person-verify/**)
  */
 @Slf4j
-@Component
+// @Component — disabled, enable when face SDK is ready
 @RequiredArgsConstructor
 public class RealNameVerificationFilter implements Filter {
 
