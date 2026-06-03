@@ -614,6 +614,8 @@ public class GroupService {
                         .eq("parent_group_id", parentGroupId)
                         .eq("applicant_id", targetUserId)
                         .eq("status", SubgroupCreationRequestStatus.PENDING.name().toLowerCase())
+                        .orderByDesc("created_at")
+                        .last("LIMIT 1")
         );
         if (request == null) {
             throw new BusinessException("没有待审核的子群组创建申请");
