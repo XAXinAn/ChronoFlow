@@ -132,8 +132,9 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
           keyboardType: TextInputType.number, maxLength: 18,
           decoration: const InputDecoration(labelText: '身份证号', border: OutlineInputBorder())),
         const SizedBox(height: 40),
-        ElevatedButton(onPressed: _startVerify, style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-          child: const Text('开始认证')),
+        ElevatedButton(onPressed: _startVerify,
+          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18), minimumSize: const Size(double.infinity, 56)),
+          child: const Text('开始认证', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500))),
       ])),
     );
   }
