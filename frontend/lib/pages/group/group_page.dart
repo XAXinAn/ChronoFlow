@@ -42,14 +42,31 @@ class _GroupPageState extends State<GroupPage> {
       final groups = await _groupService.getMyGroups();
       if (!mounted) return;
       setState(() {
-        _createdGroups = groups.where((g) => g.creatorId == uid).toList();
-        _joinedGroups = groups.where((g) => g.creatorId != uid).toList();
+        _createdGroups = groups.where((g) => g.creatorId == uid).toList()..sort(_groupSort);
+        _joinedGroups = groups.where((g) => g.creatorId != uid).toList()..sort(_groupSort);
         _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() { _isLoading = false; _error = MessageUtils.cleanError(e); });
     }
+  }
+
+  int _groupSort(Group a, Group b) {
+    final aChinese = _isChinese(a.name.isNotEmpty ? a.name[0] : '');
+    final bChinese = _isChinese(b.name.isNotEmpty ? b.name[0] : '');
+    if (aChinese && bChinese) return a.name.compareTo(b.name);
+    if (aChinese && !bChinese) return -1;
+    if (!aChinese && bChinese) return 1;
+    return a.name.compareTo(b.name);
+  }
+
+  bool _isChinese(String char) {
+    if (char.isEmpty) return false;
+    final code = char.codeUnitAt(0);
+    return (code >= 0x4E00 && code <= 0x9FFF)   // CJK Unified
+        || (code >= 0x3400 && code <= 0x4DBF)   // CJK Extension A
+        || (code >= 0x20000 && code <= 0x2A6DF); // CJK Extension B
   }
 
   void _navigateToGroup(Group group) {
