@@ -26,13 +26,11 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
     super.initState();
     _nameFocus.addListener(() => setState(() {}));
     _idFocus.addListener(() => setState(() {}));
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments;
-    _isRegistration = args is Map && args.containsKey('phone');
+    // Check early: if received registration args, mark as registration flow
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      _isRegistration = args is Map && args.containsKey('phone');
+    });
   }
 
   @override
