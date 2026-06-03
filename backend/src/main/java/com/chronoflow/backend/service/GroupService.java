@@ -229,7 +229,8 @@ public class GroupService {
             int memberCount = memberCountMap.getOrDefault(group.getId(), 0);
             boolean isAdminOrCreator = (group.getCreatorId() != null
                     && group.getCreatorId().longValue() == userId.longValue())
-                    || Boolean.TRUE.equals(adminMap.get(group.getId()));
+                    || Boolean.TRUE.equals(adminMap.get(group.getId()))
+                    || isAncestorCreatorOrAdmin(userId, group.getParentId());
             return toResponse(group, memberCount, null, isAdminOrCreator);
         }).collect(Collectors.toList());
     }

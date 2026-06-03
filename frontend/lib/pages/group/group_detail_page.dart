@@ -37,13 +37,10 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
   Future<void> _checkPermissions() async {
     final u = AuthService.currentUser; if (u == null) return;
+    // Use backend-provided isAdminOrCreator which accounts for ancestor chain
     _isCreator = u.userId == widget.group.creatorId;
-    if (_isCreator) { if (mounted) setState(() => _isLoading = false); return; }
-    try {
-      final members = await _groupService.getGroupMembers(widget.group.id);
-      final me = members.where((m) => m.userId == u.userId).toList();
-      if (mounted) setState(() { _isAdmin = me.isNotEmpty && me.first.isAdmin; _isLoading = false; });
-    } catch (_) { if (mounted) setState(() => _isLoading = false); }
+    _isAdmin = widget.group.isAdminOrCreator && !_isCreator;
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _loadChildren() async {
