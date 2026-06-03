@@ -2,7 +2,9 @@ package com.chronoflow.backend.service;
 import com.chronoflow.backend.exception.ContentModerationException;
 import com.chronoflow.backend.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.chronoflow.backend.entity.GroupMember;
 import com.chronoflow.backend.entity.User;
+import com.chronoflow.backend.mapper.GroupMemberMapper;
 import com.chronoflow.backend.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +24,7 @@ public class UserService implements UserDetailsService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final ContentModerationService contentModerationService;
+    private final GroupMemberMapper groupMemberMapper;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -100,6 +104,7 @@ public class UserService implements UserDetailsService {
         userMapper.updateById(user);
     }
 
+    @Transactional
     public void updateNickname(Long userId, String nickname) {
         // 内容审核
         String reason = contentModerationService.moderate(nickname);
@@ -129,9 +134,18 @@ public class UserService implements UserDetailsService {
             }
         }
 
+        String oldUsername = user.getUsername();
         user.setNickname(nickname);
         user.setNicknameUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
+
+        // 同步群组成员昵称：只更新未自定义过的（昵称仍等于旧用户名的）
+        LambdaQueryWrapper<GroupMember> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(GroupMember::getUserId, userId)
+               .eq(GroupMember::getNickname, oldUsername);
+        GroupMember updateMember = new GroupMember();
+        updateMember.setNickname(nickname);
+        groupMemberMapper.update(updateMember, wrapper);
     }
 
     public void bindPhone(Long userId, String phone) {
@@ -147,6 +161,30 @@ public class UserService implements UserDetailsService {
             throw new UsernameNotFoundException("用户不存在");
         }
         user.setPhone(phone);
+        userMapper.updateById(user);
+    }
+
+    /**
+     * Save real-person verification result to user record.
+     *
+     * @param userId         authenticated user
+     * @param realName       user's real name (plaintext)
+     * @param idCardNumber   user's ID card number (already encrypted by caller)
+     */
+    @Transactional
+    public void saveRealPersonVerification(Long userId, String realName, String idCardNumber) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UsernameNotFoundException("用户不存在");
+        }
+        if (Boolean.TRUE.equals(user.getRealNameVerified())) {
+            // Already verified — idempotent, don't overwrite
+            return;
+        }
+        user.setRealNameVerified(true);
+        user.setRealName(realName);
+        user.setIdCardNumber(idCardNumber);
+        user.setVerifiedAt(LocalDateTime.now());
         userMapper.updateById(user);
     }
 

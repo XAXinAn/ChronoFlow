@@ -165,6 +165,7 @@ public class UserController {
         result.put("nickname", user.getNickname());
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
+        result.put("realNameVerified", user.getRealNameVerified() != null && user.getRealNameVerified());
         return ResponseEntity.ok(result);
     }
 

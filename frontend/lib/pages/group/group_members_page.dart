@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../constants/app_constants.dart';
 import '../../model/group_model.dart';
 import '../../service/auth_service.dart';
+import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 
 class GroupMembersPage extends StatefulWidget {
@@ -16,6 +14,7 @@ class GroupMembersPage extends StatefulWidget {
 }
 
 class _GroupMembersPageState extends State<GroupMembersPage> {
+  final GroupService _groupService = GroupService();
   List<GroupMember> _members = [];
   final Set<int> _selectedMembers = {};
   bool _isSelectionMode = false;
@@ -50,48 +49,28 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     _isCreator = currentUser?.userId == widget.group.creatorId;
 
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.get(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/members'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
+      final rawMembers = await _groupService.getGroupMembers(widget.group.id);
+      final creatorId = widget.group.creatorId;
+      final members = rawMembers.map((m) => GroupMember(
+        userId: m.userId,
+        username: m.username,
+        nickname: m.nickname,
+        email: m.email,
+        isCreator: m.userId == creatorId,
+        isAdmin: m.isAdmin,
+      )).toList();
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['code'] == 200) {
-          final membersData = data['data']['members'] as List;
-          final creatorId = data['data']['creatorId'] as int;
-          final members = membersData.map((json) {
-            return GroupMember(
-              userId: json['userId'],
-              username: json['username'] ?? '',
-              nickname: json['nickname'] ?? '',
-              email: json['email'] ?? '',
-              isCreator: json['userId'] == creatorId,
-              isAdmin: json['isAdmin'] ?? false,
-            );
-          }).toList();
-
-          // 检查当前用户是否是管理员
-          if (!_isCreator && currentUser != null) {
-            final myMember = members.where((m) => m.userId == currentUser.userId).toList();
-            _isAdmin = myMember.isNotEmpty && myMember.first.isAdmin;
-          }
-
-          if (mounted) {
-            setState(() {
-              _members = members;
-              _isLoading = false;
-            });
-          }
-          return;
-        }
-        throw Exception(data['message'] ?? '获取成员列表失败');
+      if (!_isCreator && currentUser != null) {
+        final myMember = members.where((m) => m.userId == currentUser.userId).toList();
+        _isAdmin = myMember.isNotEmpty && myMember.first.isAdmin;
       }
-      throw Exception('获取成员列表失败');
+
+      if (mounted) {
+        setState(() {
+          _members = members;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -326,21 +305,13 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   Future<void> _setAdmin(GroupMember member) async {
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/admins/${member.userId}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'isAdmin': !member.isAdmin}),
+      await _groupService.setGroupAdmin(
+        widget.group.id,
+        member.userId,
+        !member.isAdmin,
       );
-
-      if (response.statusCode == 200) {
+      if (mounted) {
         await _loadMembers();
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? '设置失败');
       }
     } catch (e) {
       if (mounted) {
@@ -351,12 +322,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   Future<void> _batchSetAdmin() async {
     if (_hasAdminSelected) {
-      // 撤销管理员
       await _batchRevokeAdmin();
       return;
     }
 
-    // 加为管理员
     final canSetCount = 3 - _currentAdminCount;
     final newAdmins = _selectedMembers.where((uid) {
       final member = _members.where((m) => m.userId == uid).firstOrNull;
@@ -369,17 +338,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     }
 
     try {
-      final token = await AuthService.getAccessToken();
-
       for (final userId in newAdmins) {
-        await http.put(
-          Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/admins/$userId'),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: json.encode({'isAdmin': true}),
-        );
+        await _groupService.setGroupAdmin(widget.group.id, userId, true);
       }
 
       if (mounted) {
@@ -396,19 +356,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
 
   Future<void> _batchRevokeAdmin() async {
     try {
-      final token = await AuthService.getAccessToken();
-
       for (final userId in _selectedMembers) {
         final member = _members.where((m) => m.userId == userId).firstOrNull;
         if (member != null && member.isAdmin && !_isMemberCreator(member)) {
-          await http.put(
-            Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/admins/$userId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-            body: json.encode({'isAdmin': false}),
-          );
+          await _groupService.setGroupAdmin(widget.group.id, userId, false);
         }
       }
 
@@ -451,18 +402,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     if (confirmed != true) return;
 
     try {
-      final token = await AuthService.getAccessToken();
-
       for (final userId in _selectedMembers) {
         final member = _members.where((m) => m.userId == userId).firstOrNull;
         if (member != null && !_isMemberCreator(member)) {
-          await http.delete(
-            Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/members/$userId'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          );
+          await _groupService.removeMember(widget.group.id, userId);
         }
       }
 
@@ -505,20 +448,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     if (confirmed != true) return;
 
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.delete(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/members/${member.userId}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
+      await _groupService.removeMember(widget.group.id, member.userId);
+      if (mounted) {
         await _loadMembers();
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? '移出失败');
       }
     } catch (e) {
       if (mounted) {

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../constants/app_constants.dart';
 import '../../model/group_model.dart';
 import '../../service/auth_service.dart';
 import '../../service/group_service.dart';
@@ -76,23 +73,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   Future<void> _updateRequireApproval(bool value) async {
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/settings'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'requireApproval': value}),
+      await _groupService.updateGroupSettings(
+        widget.group.id,
+        requireApproval: value,
       );
-
-      if (response.statusCode == 200) {
+      if (mounted) {
         setState(() {
           _requireApproval = value;
         });
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? '设置失败');
       }
     } catch (e) {
       if (mounted) {

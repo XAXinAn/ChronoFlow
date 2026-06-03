@@ -43,3 +43,13 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Alibaba Cloud Face Verification SDK (v2.3.48)
+    implementation(fileTree(mapOf("dir" to "libs", "includes" to listOf("*.aar"))))
+
+    // Required transitive dependencies (documented by Alibaba Cloud)
+    implementation("com.squareup.okhttp3:okhttp:3.11.0")
+    implementation("com.squareup.okio:okio:1.14.0")
+    implementation("com.alibaba:fastjson:1.2.83_noneautotype")
+}

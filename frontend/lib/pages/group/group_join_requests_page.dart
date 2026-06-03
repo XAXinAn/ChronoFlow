@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../constants/app_constants.dart';
 import '../../model/group_model.dart';
-import '../../service/auth_service.dart';
+import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 
 class GroupJoinRequestsPage extends StatefulWidget {
@@ -16,6 +13,7 @@ class GroupJoinRequestsPage extends StatefulWidget {
 }
 
 class _GroupJoinRequestsPageState extends State<GroupJoinRequestsPage> {
+  final GroupService _groupService = GroupService();
   List<JoinRequest> _requests = [];
   bool _isLoading = true;
   String? _error;
@@ -43,37 +41,13 @@ class _GroupJoinRequestsPageState extends State<GroupJoinRequestsPage> {
     });
 
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.get(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/join-requests'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['code'] == 200) {
-          final List<dynamic> list = data['data'] ?? [];
-          if (mounted) {
-            setState(() {
-              _requests = list.map((json) => JoinRequest(
-                userId: json['userId'],
-                username: json['username'] ?? '',
-                email: json['email'] ?? '',
-                createdAt: json['createdAt'] != null
-                    ? DateTime.parse(json['createdAt'])
-                    : DateTime.now(),
-              )).toList();
-              _isLoading = false;
-            });
-          }
-          return;
-        }
-        throw Exception(data['message'] ?? '获取加群申请失败');
+      final requests = await _groupService.getJoinRequests(widget.group.id);
+      if (mounted) {
+        setState(() {
+          _requests = requests;
+          _isLoading = false;
+        });
       }
-      throw Exception('获取加群申请失败');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -86,24 +60,14 @@ class _GroupJoinRequestsPageState extends State<GroupJoinRequestsPage> {
 
   Future<void> _handleRequest(JoinRequest request, bool approve) async {
     try {
-      final token = await AuthService.getAccessToken();
-      final response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.group.id}/join-requests/${request.userId}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'approve': approve}),
+      await _groupService.approveJoinRequest(
+        widget.group.id,
+        request.userId,
+        approve,
       );
-
-      if (response.statusCode == 200) {
+      if (mounted) {
+        MessageUtils.show(context, approve ? '已批准' : '已拒绝');
         await _loadRequests();
-        if (mounted) {
-          MessageUtils.show(context, approve ? '已批准' : '已拒绝');
-        }
-      } else {
-        final data = json.decode(response.body);
-        throw Exception(data['message'] ?? '处理失败');
       }
     } catch (e) {
       if (mounted) {

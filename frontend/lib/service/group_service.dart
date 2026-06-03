@@ -158,4 +158,16 @@ class GroupService {
     }
     throw Exception(data['message'] ?? '获取群组信息失败');
   }
+
+  Future<void> updateMemberNickname(String groupId, int userId, String nickname) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/members/$userId/nickname',
+      body: {'nickname': nickname},
+    );
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '修改群昵称失败');
+    }
+  }
 }

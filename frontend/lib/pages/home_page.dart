@@ -843,6 +843,25 @@ MessageUtils.show(context, '搜索失败: $e');
                         '账号: ${AuthService.currentUser?.username ?? widget.username}',
                         style: const TextStyle(fontSize: 13, color: Colors.black54),
                       ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            AuthService.currentUser?.realName ?? '未认证',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AuthService.currentUser?.realNameVerified == true
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (AuthService.currentUser?.realNameVerified == true) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.verified, size: 14, color: Colors.green.shade400),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),

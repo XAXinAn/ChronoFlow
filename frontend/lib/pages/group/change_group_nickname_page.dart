@@ -1,9 +1,7 @@
 import '../../widgets/chrono_input_field.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../constants/app_constants.dart';
 import '../../service/auth_service.dart';
+import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 
 class ChangeGroupNicknamePage extends StatefulWidget {
@@ -52,35 +50,15 @@ class _ChangeGroupNicknamePageState extends State<ChangeGroupNicknamePage> {
     }
 
     setState(() => _isChanging = true);
-    http.Response? response;
     try {
-      final token = await AuthService.getAccessToken();
       final currentUser = AuthService.currentUser;
-      response = await http.put(
-        Uri.parse('${AppConstants.baseUrl}/groups/${widget.groupId}/members/${currentUser!.userId}/nickname'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'nickname': nickname}),
-      );
+      await GroupService().updateMemberNickname(widget.groupId, currentUser!.userId, nickname);
 
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-        MessageUtils.show(context, '修改成功');
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (!mounted) return;
-        Navigator.pop(context, nickname);
-      } else {
-        String errMsg = '修改失败';
-        try {
-          if (response.body.isNotEmpty) {
-            final data = json.decode(response.body);
-            errMsg = data['message'] ?? errMsg;
-          }
-        } catch (_) {}
-        throw Exception(errMsg);
-      }
+      if (!mounted) return;
+      MessageUtils.show(context, '修改成功');
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      Navigator.pop(context, nickname);
     } catch (e) {
       if (mounted) {
         MessageUtils.showError(context, e);

@@ -27,9 +27,11 @@ public class RateLimitingFilter implements Filter {
             "/api/auth/send-sms", new RateLimit(5, 60_000),       // 5 SMS per minute per IP
             "/api/auth/send-email", new RateLimit(5, 60_000),     // 5 emails per minute per IP
             "/api/auth/login", new RateLimit(20, 60_000),         // 20 login attempts per minute per IP
-            "/api/auth/register", new RateLimit(5, 60_000),       // 5 registrations per minute per IP
+            "/api/auth/register", new RateLimit(5, 60_000),       // 5 registration inits per minute per IP
+            "/api/auth/register/confirm", new RateLimit(10, 60_000), // 10 registration confirms per minute per IP
             "/api/auth/sms-login", new RateLimit(10, 60_000),     // 10 SMS login attempts per minute per IP
-            "/api/auth/email-login", new RateLimit(10, 60_000)    // 10 email login attempts per minute per IP
+            "/api/auth/email-login", new RateLimit(10, 60_000),   // 10 email login attempts per minute per IP
+            "/api/groups", new RateLimit(10, 60_000)              // 10 group creations per minute per IP
     );
 
     @Override

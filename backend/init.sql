@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    real_name_verified TINYINT DEFAULT 0,
+    real_name VARCHAR(100) DEFAULT NULL,
+    id_card_number VARCHAR(255) DEFAULT NULL COMMENT 'AES encrypted',
+    verified_at DATETIME DEFAULT NULL,
     INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_phone (phone)

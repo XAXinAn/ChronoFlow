@@ -25,4 +25,7 @@ frontend/android/.gradle/
 frontend/android/app/debug
 frontend/android/app/profile
 frontend/android/app/release
+frontend/android/app/libs/*.aar
+frontend/ios/Runner/FaceVerifyPlugin.swift
+frontend/ios/Pods/
 frontend/ios/Flutter/.last_build_id

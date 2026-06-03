@@ -152,7 +152,17 @@ class AuthService {
     }
   }
 
-  Future<RegisterResponse> register(String username, String phone, String code, String password) async {
+  /// Step 1: Initiate registration with real-person verification.
+  /// Returns certifyId so the app can launch the face SDK.
+  Future<String> registerInit({
+    required String username,
+    required String phone,
+    required String code,
+    required String password,
+    required String metaInfo,
+    required String realName,
+    required String idCardNumber,
+  }) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}$_authPath/register'),
       headers: {'Content-Type': 'application/json'},
@@ -161,20 +171,35 @@ class AuthService {
         'phone': phone,
         'code': code,
         'password': password,
+        'metaInfo': metaInfo,
+        'realName': realName,
+        'idCardNumber': idCardNumber,
       }),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['code'] == 200) {
+      return data['data']['certifyId'] as String;
+    } else {
+      final msg = data['message'] ?? '注册初始化失败';
+      throw Exception(msg);
+    }
+  }
+
+  /// Step 2: Confirm registration after face verification passes.
+  Future<RegisterResponse> registerConfirm(String certifyId) async {
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}$_authPath/register/confirm'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'certifyId': certifyId}),
     );
 
     if (response.statusCode == 200) {
       return RegisterResponse.fromJson(jsonDecode(response.body));
     } else {
       final error = jsonDecode(response.body);
-      if (error['message'] != null) {
-        throw Exception(error['message']);
-      } else if (error['errors'] != null) {
-        final errors = error['errors'] as Map<String, dynamic>;
-        if (errors.isNotEmpty) throw Exception(errors.values.first);
-      }
-      throw Exception('注册失败');
+      final msg = error['message'] ?? '注册确认失败';
+      throw Exception(msg);
     }
   }
 

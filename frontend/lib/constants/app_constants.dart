@@ -7,7 +7,7 @@ class AppConstants {
     'BASE_URL',
     // Android模拟器访问宿主机用 http://10.0.2.2:8080/api
     // 真机需要改成电脑的局域网IP，如 http://192.168.x.x:8080/api
-    defaultValue: 'http://10.0.2.2:8080/api',
+    defaultValue: 'http://localhost:8080/api',
   );
 
   // 主题色 - 黑白极简风格
