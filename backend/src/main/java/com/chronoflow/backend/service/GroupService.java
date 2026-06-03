@@ -654,6 +654,25 @@ public class GroupService {
      */
     public List<GroupResponse> getMyGroupTree(Long userId) {
         List<GroupResponse> flatList = getMyGroups(userId);
+        // Also include descendant groups where user is ancestor creator but not a member
+        java.util.Set<String> existingIds = flatList.stream()
+                .map(GroupResponse::getId).collect(Collectors.toSet());
+        // Find all groups created by this user
+        List<Group> createdGroups = groupMapper.selectList(
+                new QueryWrapper<Group>().eq("creator_id", userId));
+        for (Group root : createdGroups) {
+            List<String> descendantIds = getDescendantGroupIds(root.getId());
+            for (String descId : descendantIds) {
+                if (!existingIds.contains(descId)) {
+                    Group desc = groupMapper.selectById(descId);
+                    if (desc != null) {
+                        int count = groupMemberMapper.selectCount(
+                                new QueryWrapper<GroupMember>().eq("group_id", descId)).intValue();
+                        flatList.add(toResponse(desc, count));
+                    }
+                }
+            }
+        }
         return buildTree(flatList, null);
     }
 
