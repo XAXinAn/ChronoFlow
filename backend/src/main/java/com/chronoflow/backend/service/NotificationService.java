@@ -17,7 +17,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@ConditionalOnBean(NotificationAiService.class)
 public class NotificationService {
 
     private final NotificationAiService notificationAiService;

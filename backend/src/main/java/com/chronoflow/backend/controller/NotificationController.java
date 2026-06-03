@@ -19,7 +19,6 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/notification")
-@ConditionalOnBean(NotificationService.class)
 public class NotificationController {
 
     private final NotificationService notificationService;
