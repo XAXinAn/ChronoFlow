@@ -6,6 +6,7 @@ import '../../utils/message_utils.dart';
 import 'group_qr_page.dart';
 import 'group_members_page.dart';
 import 'group_settings_page.dart';
+import 'create_subgroup_page.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final Group group;
@@ -53,23 +54,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _requestSubgroup() async {
-    final nameCtrl = TextEditingController(), descCtrl = TextEditingController();
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('申请创建子群组'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: nameCtrl, decoration: const InputDecoration(hintText: '子群组名称', border: OutlineInputBorder())),
-        const SizedBox(height: 12),
-        TextField(controller: descCtrl, decoration: const InputDecoration(hintText: '描述（选填）', border: OutlineInputBorder()), maxLines: 2),
-      ]),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('提交'))],
-    ));
-    if (ok != true) return;
-    try {
-      await _groupService.createSubgroupRequest(widget.group.id, nameCtrl.text.trim(), descCtrl.text.trim());
-      if (!mounted) return;
-      MessageUtils.show(context, '申请已提交');
-    } catch (e) { if (mounted) MessageUtils.showError(context, e); }
+    final result = await Navigator.push(context,
+      MaterialPageRoute(builder: (_) => CreateSubgroupPage(parentGroupId: widget.group.id, parentGroupName: widget.group.name)));
+    if (result == true) _loadChildren();
   }
 
   String get _depthLabel {

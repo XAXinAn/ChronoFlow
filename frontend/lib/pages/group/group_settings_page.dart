@@ -323,65 +323,35 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
             // 入群验证开关
             if (_canManageSettings)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black12),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  side: const BorderSide(color: Colors.black12),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: SwitchListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  title: const Text(
-                    '入群验证',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                child: SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  title: const Text('入群验证', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       _requireApproval ? '已开启' : '已关闭',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _requireApproval ? Colors.green : Colors.black38,
-                      ),
+                      style: TextStyle(fontSize: 13, color: _requireApproval ? Colors.green : Colors.black38),
                     ),
                   ),
                   secondary: Container(
-                    width: 44,
-                    height: 44,
+                    width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: _requireApproval
-                          ? Colors.green.shade50
-                          : Colors.blue.shade50,
+                      color: _requireApproval ? Colors.green.shade50 : Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.verified_user_outlined,
-                      size: 22,
-                      color: _requireApproval
-                          ? Colors.green.shade400
-                          : Colors.black54,
-                    ),
+                    child: Icon(Icons.verified_user_outlined, size: 22,
+                      color: _requireApproval ? Colors.green.shade400 : Colors.black54),
                   ),
                   value: _requireApproval,
                   onChanged: _updateRequireApproval,
                   activeTrackColor: Colors.green,
                 ),
-              ),
               ),
 
             if (_canManageSettings) ...[
