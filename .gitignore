@@ -29,4 +29,5 @@ frontend/android/app/libs/*.aar
 frontend/ios/Runner/FaceVerifyPlugin.swift
 frontend/ios/Pods/
 frontend/ios/Flutter/.last_build_id
-android/app/chronoflow.keystore
+start-prod.sh
+frontend/android/app/chronoflow.keystore
