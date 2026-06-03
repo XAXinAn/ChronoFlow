@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lpinyin/lpinyin.dart';
 import '../../model/group_model.dart';
 import '../../service/auth_service.dart';
 import '../../service/group_service.dart';
@@ -71,20 +72,12 @@ class _GroupPageState extends State<GroupPage> {
   }
 
   int _pinyinSort(Group a, Group b) {
-    final aChinese = _isChinese(a.name.isNotEmpty ? a.name[0] : '');
-    final bChinese = _isChinese(b.name.isNotEmpty ? b.name[0] : '');
-    if (aChinese && bChinese) return a.name.compareTo(b.name);
-    if (aChinese && !bChinese) return -1;
-    if (!aChinese && bChinese) return 1;
+    final aPinyin = PinyinHelper.getPinyinE(a.name, defPinyin: '');
+    final bPinyin = PinyinHelper.getPinyinE(b.name, defPinyin: '');
+    if (aPinyin.isNotEmpty && bPinyin.isNotEmpty) return aPinyin.compareTo(bPinyin);
+    if (aPinyin.isNotEmpty) return -1;
+    if (bPinyin.isNotEmpty) return 1;
     return a.name.compareTo(b.name);
-  }
-
-  bool _isChinese(String char) {
-    if (char.isEmpty) return false;
-    final code = char.codeUnitAt(0);
-    return (code >= 0x4E00 && code <= 0x9FFF)
-        || (code >= 0x3400 && code <= 0x4DBF)
-        || (code >= 0x20000 && code <= 0x2A6DF);
   }
 
   void _navigateToGroup(Group group) {
