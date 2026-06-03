@@ -723,7 +723,7 @@ public class GroupService {
     /**
      * Get direct children of a group.
      */
-    public List<GroupResponse> getDirectChildren(String parentGroupId) {
+    public List<GroupResponse> getDirectChildren(String parentGroupId, Long userId) {
         List<Group> children = groupMapper.selectList(
                 new QueryWrapper<Group>().eq("parent_id", parentGroupId));
         return children.stream()
@@ -734,9 +734,10 @@ public class GroupService {
                             new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
                     int descendantCount = 0;
                     if (hasChild) {
-                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1; // exclude self
+                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1;
                     }
-                    GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
+                    boolean canManage = isCreatorOrAdmin(userId, g);
+                    GroupResponse resp = toResponse(g, memberCount, null, canManage, hasChild);
                     resp.setDescendantCount(descendantCount);
                     return resp;
                 })
