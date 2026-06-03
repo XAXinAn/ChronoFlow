@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lpinyin/lpinyin.dart';
 import '../../model/group_model.dart';
 import '../../service/auth_service.dart';
 import '../../service/group_service.dart';
@@ -46,6 +47,14 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   Future<void> _loadChildren() async {
     try {
       final children = await _groupService.getGroupChildren(widget.group.id);
+      children.sort((a, b) {
+        final ap = PinyinHelper.getPinyinE(a.name, defPinyin: '');
+        final bp = PinyinHelper.getPinyinE(b.name, defPinyin: '');
+        if (ap.isNotEmpty && bp.isNotEmpty) return ap.compareTo(bp);
+        if (ap.isNotEmpty) return -1;
+        if (bp.isNotEmpty) return 1;
+        return a.name.compareTo(b.name);
+      });
       if (mounted) setState(() => _children = children);
     } catch (_) {}
   }
