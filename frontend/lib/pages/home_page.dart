@@ -956,12 +956,50 @@ MessageUtils.show(context, '搜索失败: $e');
                 ),
               ),
             ),
+            // 实人认证
+            _buildRealNameVerifyItem(),
             _buildProfileItem(Icons.lock_outline, '修改密码', onTap: () => Navigator.pushNamed(context, '/change-password')),
             _buildProfileItem(Icons.info_outline, '关于', onTap: () => Navigator.pushNamed(context, '/about')),
             const SizedBox(height: 24),
             _buildProfileItem(Icons.logout, '退出登录', onTap: () => _showLogoutDialog()),
             _buildProfileItem(Icons.delete_forever, '注销账号', onTap: () => _showDeleteAccountDialog()),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRealNameVerifyItem() {
+    final verified = AuthService.currentUser?.realNameVerified == true;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: verified ? null : () async {
+            final result = await Navigator.pushNamed(context, '/real-person-verify');
+            if (result == true && mounted) {
+              // Refresh user to get updated data
+              await AuthService().refreshUserInfo();
+              if (refreshed != null) setState(() {});
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              Icon(Icons.verified_user_outlined, size: 22, color: verified ? Colors.green : Colors.black54),
+              const SizedBox(width: 16),
+              Expanded(child: Text(verified ? '已实名认证' : '实人认证（未认证）',
+                style: TextStyle(fontSize: 15, color: verified ? Colors.green : Colors.orange))),
+              if (verified)
+                Icon(Icons.check_circle, size: 18, color: Colors.green.shade400)
+              else
+                const Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+            ]),
+          ),
         ),
       ),
     );

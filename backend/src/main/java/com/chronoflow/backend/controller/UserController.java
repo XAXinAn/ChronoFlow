@@ -4,11 +4,16 @@ import com.chronoflow.backend.dto.ApiResponse;
 import com.chronoflow.backend.dto.BindEmailRequest;
 import com.chronoflow.backend.dto.BindPhoneRequest;
 import com.chronoflow.backend.dto.ChangePasswordRequest;
+import com.chronoflow.backend.dto.RealPersonVerifyInitRequest;
+import com.chronoflow.backend.dto.RealPersonVerifyResultResponse;
 import com.chronoflow.backend.dto.UpdateNicknameRequest;
 import com.chronoflow.backend.entity.User;
 import com.chronoflow.backend.service.EmailService;
+import com.chronoflow.backend.service.RealPersonVerificationService;
 import com.chronoflow.backend.service.SmsService;
 import com.chronoflow.backend.service.UserService;
+import com.chronoflow.backend.util.CryptoUtil;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +32,10 @@ public class UserController {
     private final UserService userService;
     private final EmailService emailService;
     private final SmsService smsService;
+    private final RealPersonVerificationService realPersonVerificationService;
+
+    @Value("${crypto.secret:${jwt.secret:default-crypto-key-32chars}}")
+    private String cryptoSecret;
 
     @PostMapping("/bind-email")
     public ResponseEntity<Map<String, Object>> bindEmail(
@@ -151,6 +160,44 @@ public class UserController {
         Map<String, Object> result = new HashMap<>();
         result.put("message", "密码修改成功");
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/real-person-verify")
+    public ResponseEntity<Map<String, Object>> initRealPersonVerify(
+            HttpServletRequest httpRequest,
+            @Valid @RequestBody RealPersonVerifyInitRequest request) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        User user = userService.findById(userId);
+        if (Boolean.TRUE.equals(user.getRealNameVerified())) {
+            return ResponseEntity.ok(Map.of("alreadyVerified", true, "message", "您已完成实人认证"));
+        }
+        try {
+            String certifyId = realPersonVerificationService.initFaceVerify(
+                    request.getMetaInfo(), request.getRealName(), request.getIdCardNumber(), userId);
+            return ResponseEntity.ok(Map.of("certifyId", certifyId, "alreadyVerified", false));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/real-person-verify/result")
+    public ResponseEntity<Map<String, Object>> getRealPersonVerifyResult(
+            HttpServletRequest httpRequest, @RequestParam String certifyId) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        try {
+            RealPersonVerifyResultResponse response = realPersonVerificationService.describeFaceVerify(certifyId, userId);
+            if (response.isVerified()) {
+                User user = userService.findById(userId);
+                userService.saveRealPersonVerification(userId, user.getRealName() != null ? user.getRealName() : "",
+                        user.getIdCardNumber() != null ? user.getIdCardNumber() : "");
+                user = userService.findById(userId);
+                return ResponseEntity.ok(Map.of("verified", true, "message", "认证通过",
+                        "realNameVerified", user.getRealNameVerified()));
+            }
+            return ResponseEntity.ok(Map.of("verified", false, "message", response.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/info")

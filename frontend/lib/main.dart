@@ -10,6 +10,7 @@ import 'pages/profile/change_nickname_page.dart';
 import 'pages/profile/change_phone_page.dart';
 import 'pages/profile/change_password_page.dart';
 import 'pages/profile/about_page.dart';
+import 'pages/profile/real_person_verify_page.dart';
 import 'pages/profile/privacy_policy_page.dart';
 import 'pages/profile/user_agreement_page.dart';
 import 'pages/schedule/shared_image_handler.dart';
@@ -129,6 +130,8 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (_) => ChangeNicknamePage(currentNickname: currentNickname),
             );
+          case '/real-person-verify':
+            return MaterialPageRoute(builder: (_) => const RealPersonVerifyPage());
           case '/about':
             return MaterialPageRoute(
               builder: (_) => const AboutPage(),
