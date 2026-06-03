@@ -323,13 +323,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
             // 入群验证开关
             if (_canManageSettings)
-              Material(
-                color: Colors.white,
-                elevation: 0,
-                surfaceTintColor: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
+              Container(
                 decoration: BoxDecoration(
+                  color: Colors.white,
                   border: Border.all(color: Colors.black12),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
@@ -340,7 +336,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     ),
                   ],
                 ),
-                child: SwitchListTile(
+                child: Material(
+                  color: Colors.transparent,
+                  child: SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 8,
