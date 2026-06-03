@@ -983,7 +983,7 @@ MessageUtils.show(context, '搜索失败: $e');
             if (result == true && mounted) {
               // Refresh user to get updated data
               await AuthService().refreshUserInfo();
-              if (refreshed != null) setState(() {});
+              if (mounted) setState(() {});
             }
           },
           child: Container(

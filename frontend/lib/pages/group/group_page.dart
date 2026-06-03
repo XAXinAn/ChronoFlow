@@ -56,12 +56,12 @@ class _GroupPageState extends State<GroupPage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Expanded(child: _buildActionCard(Icons.add_circle_outline, '创建群组', () async {
+                Expanded(child: _buildActionCard(icon: Icons.add_circle_outline, label: '创建群组', onTap: () async {
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
                   if (result != null) _loadGroups();
                 })),
                 const SizedBox(width: 12),
-                Expanded(child: _buildActionCard(Icons.login, '加入群组', () async {
+                Expanded(child: _buildActionCard(icon: Icons.login, label: '加入群组', onTap: () async {
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const JoinGroupPage()));
                   if (result != null) _loadGroups();
                 })),
