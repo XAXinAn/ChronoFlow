@@ -92,14 +92,16 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               Text(_depthLabel, style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500)),
             ]),
           ),
-          // 申请子群
-          SizedBox(width: double.infinity, child: OutlinedButton.icon(
-            onPressed: () => _requestSubgroup(),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('申请创建子群组'),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.black54, side: const BorderSide(color: Colors.black12)),
-          )),
-          const SizedBox(height: 12),
+          // 申请子群（仅群主/管理员可见）
+          if (_isCreator || _isAdmin) ...[
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(
+              onPressed: () => _requestSubgroup(),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('申请创建子群组'),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.black54, side: const BorderSide(color: Colors.black12)),
+            )),
+            const SizedBox(height: 12),
+          ],
           // 成员
           InkWell(
             onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupMembersPage(group: widget.group))); },

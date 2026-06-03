@@ -7,7 +7,6 @@ import '../../service/schedule_service.dart';
 import '../../service/calendar_service.dart';
 import '../../utils/message_utils.dart';
 import 'select_publish_target_page.dart';
-import 'select_publish_targets_page.dart';
 
 /// 创建日程页面（支持个人/群组）
 class AddGroupSchedulePage extends StatefulWidget {
@@ -35,7 +34,6 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
   bool _isSaving = false;
   Group? _selectedGroup;
   bool _syncToCalendar = false;
-  List<String> _publishTargetIds = [];
 
 
   @override
@@ -122,7 +120,6 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
           description: _descController.text.trim(),
           location: _locationController.text.trim(),
           time: dateTime,
-          publishTargetGroupIds: _publishTargetIds.isEmpty ? null : _publishTargetIds,
         );
       }
 
@@ -202,8 +199,6 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
 
                   // 发布到选择
                   _buildPublishTargetSelector(),
-                  // 下发范围（仅群组日程显示）
-                  _buildPublishTargetsSection(),
 
                   const SizedBox(height: 32),
 
@@ -271,37 +266,6 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
                   ),
                 ),
     );
-  }
-
-  Future<void> _selectPublishTargets() async {
-    if (_selectedGroup == null) return;
-    final result = await Navigator.push<List<String>>(context,
-      MaterialPageRoute(builder: (_) => SelectPublishTargetsPage(
-        rootGroupId: _selectedGroup!.id, rootGroupName: _selectedGroup!.name)));
-    if (result != null && mounted) setState(() => _publishTargetIds = result);
-  }
-
-  Widget _buildPublishTargetsSection() {
-    if (_selectedGroup == null) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(height: 0.5, color: AppConstants.lightGray, margin: const EdgeInsets.only(bottom: 12)),
-      GestureDetector(
-        onTap: _selectPublishTargets,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(border: Border.all(color: AppConstants.lightGray), borderRadius: BorderRadius.circular(8)),
-          child: Row(children: [
-            Icon(Icons.share, size: 20, color: AppConstants.primaryColor),
-            const SizedBox(width: 8),
-            Expanded(child: Text(
-              _publishTargetIds.isEmpty ? '下发范围：仅本群' : '下发范围：本群 + ${_publishTargetIds.length} 个子群',
-              style: TextStyle(color: AppConstants.primaryColor, fontSize: 15))),
-            const Icon(Icons.chevron_right, color: AppConstants.primaryColor, size: 20),
-          ]),
-        ),
-      ),
-      Container(height: 0.5, color: AppConstants.lightGray, margin: const EdgeInsets.only(top: 12)),
-    ]);
   }
 
   Widget _buildPublishTargetSelector() {
