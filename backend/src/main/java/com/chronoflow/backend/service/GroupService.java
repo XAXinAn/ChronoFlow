@@ -640,9 +640,16 @@ public class GroupService {
 
     private List<GroupResponse> buildTree(List<GroupResponse> all, String parentId) {
         List<GroupResponse> tree = new java.util.ArrayList<>();
+        java.util.Set<String> parentIdsInList = all.stream()
+                .map(GroupResponse::getId).collect(Collectors.toSet());
         for (GroupResponse g : all) {
             boolean match = (parentId == null && g.getParentId() == null)
                     || (parentId != null && parentId.equals(g.getParentId()));
+            // Also treat as root if parent is not in the list (orphan group)
+            if (parentId == null && !match && g.getParentId() != null
+                    && !parentIdsInList.contains(g.getParentId())) {
+                match = true;
+            }
             if (match) {
                 List<GroupResponse> children = buildTree(all, g.getId());
                 g.setHasChildren(!children.isEmpty());
