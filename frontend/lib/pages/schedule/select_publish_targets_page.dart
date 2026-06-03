@@ -113,8 +113,8 @@ class _SelectPublishTargetsPageState extends State<SelectPublishTargetsPage> {
           : _tree.isEmpty
               ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Text('该群组没有子群组', style: TextStyle(fontSize: 16, color: Colors.black54)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(onPressed: () => Navigator.pop(context, <String>[]), child: const Text('不选择（仅本群）')),
+                  const SizedBox(height: 24),
+                  ElevatedButton(onPressed: () => Navigator.pop(context, <String>[]), child: const Text('确定')),
                 ]))
               : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Padding(
