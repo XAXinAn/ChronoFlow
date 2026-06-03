@@ -29,7 +29,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final com.chronoflow.backend.security.RealNameVerificationFilter realNameVerificationFilter;
+    // TODO: Enable when face SDK is integrated
+    // private final com.chronoflow.backend.security.RealNameVerificationFilter realNameVerificationFilter;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
 
@@ -74,7 +75,9 @@ public class SecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(realNameVerificationFilter, JwtAuthenticationFilter.class);
+                // TODO: Enable when face SDK is integrated
+                // .addFilterAfter(realNameVerificationFilter, JwtAuthenticationFilter.class)
+                ;
 
         return http.build();
     }
