@@ -295,8 +295,6 @@ public class ScheduleService {
         // Re-sort
         allSchedules.sort((a, b) -> b.getTime().compareTo(a.getTime()));
 
-        allSchedules.sort((a, b) -> b.getTime().compareTo(a.getTime()));
-
         // Batch load all referenced groups in one query to avoid N+1
         List<String> distinctGroupIds = allSchedules.stream()
                 .map(Schedule::getGroupId)
@@ -328,7 +326,7 @@ public class ScheduleService {
             }
         }
 
-        return groupSchedules.stream().map(schedule -> {
+        return allSchedules.stream().map(schedule -> {
             Group group = groupMap.get(schedule.getGroupId());
             String groupName = group != null ? group.getName() : null;
             boolean isCreator = group != null && group.getCreatorId().equals(userId);
