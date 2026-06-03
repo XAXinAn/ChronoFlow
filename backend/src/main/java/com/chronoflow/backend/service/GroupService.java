@@ -400,17 +400,36 @@ public class GroupService {
     }
 
     public boolean isCreatorOrAdmin(Long userId, Group group) {
+        // Direct creator
         if (group.getCreatorId().equals(userId)) {
             return true;
         }
-
+        // Direct admin
         GroupMember member = groupMemberMapper.selectOne(
                 new QueryWrapper<GroupMember>()
                         .eq("group_id", group.getId())
                         .eq("user_id", userId)
         );
+        if (member != null && Boolean.TRUE.equals(member.getIsAdmin())) {
+            return true;
+        }
+        // Check ancestor chain: if user created any ancestor group, they're admin here
+        return isAncestorCreator(userId, group.getParentId());
+    }
 
-        return member != null && Boolean.TRUE.equals(member.getIsAdmin());
+    /**
+     * Walk up the parent chain to check if userId created any ancestor group.
+     */
+    private boolean isAncestorCreator(Long userId, String parentId) {
+        Group current = groupMapper.selectById(parentId);
+        while (current != null) {
+            if (current.getCreatorId().equals(userId)) {
+                return true;
+            }
+            if (current.getParentId() == null) break;
+            current = groupMapper.selectById(current.getParentId());
+        }
+        return false;
     }
 
     public boolean isCreatorOrAdmin(Long userId, String groupId) {
