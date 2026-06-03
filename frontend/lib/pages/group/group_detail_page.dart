@@ -40,7 +40,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     final u = AuthService.currentUser; if (u == null) return;
     _isCreator = u.userId == widget.group.creatorId;
     _isAdmin = widget.group.isAdminOrCreator && !_isCreator;
-    debugPrint('GroupDetail ${widget.group.name}: userId=${u.userId}, creatorId=${widget.group.creatorId}, isAdminOrCreator=${widget.group.isAdminOrCreator}, _isCreator=$_isCreator, _isAdmin=$_isAdmin');
+    print('GroupDetail ${widget.group.name}: userId=${u.userId}, creatorId=${widget.group.creatorId}, isAdminOrCreator=${widget.group.isAdminOrCreator}, _isCreator=$_isCreator, _isAdmin=$_isAdmin');
     _isLoading = false;
   }
 
