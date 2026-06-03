@@ -89,6 +89,20 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
+  Future<void> _showJoinRequests() async {
+    try {
+      final requests = await _groupService.getJoinRequests(widget.group.id);
+      if (!mounted) return;
+      if (requests.isEmpty) {
+        MessageUtils.show(context, '暂无加群申请');
+        return;
+      }
+      Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
+    } catch (e) {
+      if (mounted) MessageUtils.showError(context, e);
+    }
+  }
+
   Future<void> _showSubgroupRequests() async {
     final gs = GroupService();
     try {
@@ -414,9 +428,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
-                    },
+                    onTap: () => _showJoinRequests(),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Row(children: [
