@@ -413,21 +413,26 @@ public class GroupService {
         if (member != null && Boolean.TRUE.equals(member.getIsAdmin())) {
             return true;
         }
-        // Check ancestor chain: if user created any ancestor group, they're admin here
-        return isAncestorCreator(userId, group.getParentId());
+        // Check ancestor chain: if user created or is admin of any ancestor group
+        return isAncestorCreatorOrAdmin(userId, group.getParentId());
     }
 
     /**
-     * Walk up the parent chain to check if userId created any ancestor group.
+     * Walk up the parent chain to check if userId created or is admin of any ancestor group.
      */
-    private boolean isAncestorCreator(Long userId, String parentId) {
-        Group current = groupMapper.selectById(parentId);
-        while (current != null) {
-            if (current.getCreatorId().equals(userId)) {
-                return true;
-            }
-            if (current.getParentId() == null) break;
-            current = groupMapper.selectById(current.getParentId());
+    private boolean isAncestorCreatorOrAdmin(Long userId, String parentId) {
+        String currentId = parentId;
+        while (currentId != null) {
+            Group current = groupMapper.selectById(currentId);
+            if (current == null) break;
+            if (current.getCreatorId().equals(userId)) return true;
+            // Check if user is admin of this ancestor group
+            GroupMember member = groupMemberMapper.selectOne(
+                    new QueryWrapper<GroupMember>()
+                            .eq("group_id", current.getId())
+                            .eq("user_id", userId));
+            if (member != null && Boolean.TRUE.equals(member.getIsAdmin())) return true;
+            currentId = current.getParentId();
         }
         return false;
     }
@@ -654,14 +659,19 @@ public class GroupService {
      */
     public List<GroupResponse> getMyGroupTree(Long userId) {
         List<GroupResponse> flatList = getMyGroups(userId);
-        // Also include descendant groups where user is ancestor creator but not a member
         java.util.Set<String> existingIds = flatList.stream()
                 .map(GroupResponse::getId).collect(Collectors.toSet());
-        // Find all groups created by this user
+        // Find groups where user is creator or admin, and include descendants
+        java.util.Set<String> rootGroupIds = new java.util.HashSet<>();
         List<Group> createdGroups = groupMapper.selectList(
                 new QueryWrapper<Group>().eq("creator_id", userId));
-        for (Group root : createdGroups) {
-            List<String> descendantIds = getDescendantGroupIds(root.getId());
+        for (Group g : createdGroups) rootGroupIds.add(g.getId());
+        List<GroupMember> adminMemberships = groupMemberMapper.selectList(
+                new QueryWrapper<GroupMember>()
+                        .eq("user_id", userId).eq("is_admin", true));
+        for (GroupMember m : adminMemberships) rootGroupIds.add(m.getGroupId());
+        for (String rootId : rootGroupIds) {
+            List<String> descendantIds = getDescendantGroupIds(rootId);
             for (String descId : descendantIds) {
                 if (!existingIds.contains(descId)) {
                     Group desc = groupMapper.selectById(descId);
