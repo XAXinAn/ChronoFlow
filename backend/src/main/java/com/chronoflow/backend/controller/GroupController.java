@@ -61,10 +61,8 @@ public class GroupController {
 
     @GetMapping("/{groupId}/children")
     public ResponseEntity<ApiResponse<List<GroupResponse>>> getChildren(
-            HttpServletRequest request,
             @PathVariable String groupId) {
-        Long userId = getUserIdFromRequest(request);
-        List<GroupResponse> children = groupService.getDirectChildren(groupId, userId);
+        List<GroupResponse> children = groupService.getDirectChildren(groupId);
         return ResponseEntity.ok(ApiResponse.success("获取成功", children));
     }
 

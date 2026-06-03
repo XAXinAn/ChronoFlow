@@ -229,8 +229,7 @@ public class GroupService {
             int memberCount = memberCountMap.getOrDefault(group.getId(), 0);
             boolean isAdminOrCreator = (group.getCreatorId() != null
                     && group.getCreatorId().longValue() == userId.longValue())
-                    || Boolean.TRUE.equals(adminMap.get(group.getId()))
-                    || isAncestorCreatorOrAdmin(userId, group.getParentId());
+                    || Boolean.TRUE.equals(adminMap.get(group.getId()));
             return toResponse(group, memberCount, null, isAdminOrCreator);
         }).collect(Collectors.toList());
     }
@@ -401,41 +400,15 @@ public class GroupService {
     }
 
     public boolean isCreatorOrAdmin(Long userId, Group group) {
-        // Direct creator
         if (group.getCreatorId().equals(userId)) {
             return true;
         }
-        // Direct admin
         GroupMember member = groupMemberMapper.selectOne(
                 new QueryWrapper<GroupMember>()
                         .eq("group_id", group.getId())
                         .eq("user_id", userId)
         );
-        if (member != null && Boolean.TRUE.equals(member.getIsAdmin())) {
-            return true;
-        }
-        // Check ancestor chain: if user created or is admin of any ancestor group
-        return isAncestorCreatorOrAdmin(userId, group.getParentId());
-    }
-
-    /**
-     * Walk up the parent chain to check if userId created or is admin of any ancestor group.
-     */
-    private boolean isAncestorCreatorOrAdmin(Long userId, String parentId) {
-        String currentId = parentId;
-        while (currentId != null) {
-            Group current = groupMapper.selectById(currentId);
-            if (current == null) break;
-            if (current.getCreatorId().equals(userId)) return true;
-            // Check if user is admin of this ancestor group
-            GroupMember member = groupMemberMapper.selectOne(
-                    new QueryWrapper<GroupMember>()
-                            .eq("group_id", current.getId())
-                            .eq("user_id", userId));
-            if (member != null && Boolean.TRUE.equals(member.getIsAdmin())) return true;
-            currentId = current.getParentId();
-        }
-        return false;
+        return member != null && Boolean.TRUE.equals(member.getIsAdmin());
     }
 
     public boolean isCreatorOrAdmin(Long userId, String groupId) {
@@ -452,13 +425,7 @@ public class GroupService {
                         .eq("group_id", groupId)
                         .eq("user_id", userId)
         );
-        if (member != null) return true;
-        // Ancestor creators/admins are considered members of all descendant groups
-        Group group = groupMapper.selectById(groupId);
-        if (group != null) {
-            return isAncestorCreatorOrAdmin(userId, group.getParentId());
-        }
-        return false;
+        return member != null;
     }
 
     public boolean isAdmin(String groupId, Long userId) {
@@ -668,31 +635,6 @@ public class GroupService {
      */
     public List<GroupResponse> getMyGroupTree(Long userId) {
         List<GroupResponse> flatList = getMyGroups(userId);
-        java.util.Set<String> existingIds = flatList.stream()
-                .map(GroupResponse::getId).collect(Collectors.toSet());
-        // Find groups where user is creator or admin, and include descendants
-        java.util.Set<String> rootGroupIds = new java.util.HashSet<>();
-        List<Group> createdGroups = groupMapper.selectList(
-                new QueryWrapper<Group>().eq("creator_id", userId));
-        for (Group g : createdGroups) rootGroupIds.add(g.getId());
-        List<GroupMember> adminMemberships = groupMemberMapper.selectList(
-                new QueryWrapper<GroupMember>()
-                        .eq("user_id", userId).eq("is_admin", true));
-        for (GroupMember m : adminMemberships) rootGroupIds.add(m.getGroupId());
-        for (String rootId : rootGroupIds) {
-            List<String> descendantIds = getDescendantGroupIds(rootId);
-            for (String descId : descendantIds) {
-                if (!existingIds.contains(descId)) {
-                    Group desc = groupMapper.selectById(descId);
-                    if (desc != null) {
-                        int count = groupMemberMapper.selectCount(
-                                new QueryWrapper<GroupMember>().eq("group_id", descId)).intValue();
-                        boolean canManage = isCreatorOrAdmin(userId, desc);
-                        flatList.add(toResponse(desc, count, null, canManage));
-                    }
-                }
-            }
-        }
         return buildTree(flatList, null);
     }
 
@@ -724,7 +666,7 @@ public class GroupService {
     /**
      * Get direct children of a group.
      */
-    public List<GroupResponse> getDirectChildren(String parentGroupId, Long userId) {
+    public List<GroupResponse> getDirectChildren(String parentGroupId) {
         List<Group> children = groupMapper.selectList(
                 new QueryWrapper<Group>().eq("parent_id", parentGroupId));
         return children.stream()
@@ -737,8 +679,7 @@ public class GroupService {
                     if (hasChild) {
                         descendantCount = getDescendantGroupIds(g.getId()).size() - 1;
                     }
-                    boolean canManage = isCreatorOrAdmin(userId, g);
-                    GroupResponse resp = toResponse(g, memberCount, null, canManage, hasChild);
+                    GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
                     resp.setDescendantCount(descendantCount);
                     return resp;
                 })

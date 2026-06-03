@@ -442,7 +442,10 @@ public class ScheduleService {
     }
 
     private boolean isCreatorOrAdmin(Long userId, Group group) {
-        return groupService.isCreatorOrAdmin(userId, group);
+        if (group.getCreatorId().equals(userId)) {
+            return true;
+        }
+        return groupService.isAdmin(group.getId(), userId);
     }
 
     private ScheduleResponse toResponse(Schedule schedule, String groupName) {
