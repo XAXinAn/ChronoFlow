@@ -5,6 +5,7 @@ import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 import 'change_group_nickname_page.dart';
 import 'group_join_requests_page.dart';
+import 'subgroup_requests_page.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final Group group;
@@ -89,58 +90,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
-  Future<void> _showJoinRequests() async {
-    try {
-      final requests = await _groupService.getJoinRequests(widget.group.id);
-      if (!mounted) return;
-      if (requests.isEmpty) {
-        MessageUtils.show(context, '暂无加群申请');
-        return;
-      }
-      Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
-    } catch (e) {
-      if (mounted) MessageUtils.showError(context, e);
-    }
+  void _showJoinRequests() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
   }
 
-  Future<void> _showSubgroupRequests() async {
-    final gs = GroupService();
-    try {
-      final requests = await gs.getSubgroupRequests(widget.group.id);
-      if (!mounted) return;
-      if (requests.isEmpty) {
-        MessageUtils.show(context, '暂无子群组创建申请');
-        return;
-      }
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 16),
-              const Text('子群组创建申请', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 16),
-              ...requests.map((r) => Material(
-                color: Colors.transparent,
-                child: ListTile(
-                title: Text(r['name'] ?? ''),
-                subtitle: Text('${r['applicantName'] ?? ''}  ${r['description'] ?? ''}'),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, false); }),
-                  IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () { Navigator.pop(ctx); gs.approveSubgroupRequest(widget.group.id, r['applicantId'] as int, true); MessageUtils.show(context, '子群组创建成功'); }),
-                ]),
-              ))),
-            ]),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (mounted) MessageUtils.showError(context, e);
-    }
+  void _showSubgroupRequests() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => SubgroupRequestsPage(group: widget.group)));
   }
 
   Future<void> _dissolveGroup() async {
