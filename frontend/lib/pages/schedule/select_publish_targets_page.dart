@@ -111,11 +111,7 @@ class _SelectPublishTargetsPageState extends State<SelectPublishTargetsPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _tree.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Text('该群组没有子群组', style: TextStyle(fontSize: 16, color: Colors.black54)),
-                  const SizedBox(height: 24),
-                  ElevatedButton(onPressed: () => Navigator.pop(context, <String>[]), child: const Text('确定')),
-                ]))
+              ? const Center(child: Text('该群组没有子群组', style: TextStyle(fontSize: 16, color: Colors.black54)))
               : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Padding(
                     padding: const EdgeInsets.all(16),
