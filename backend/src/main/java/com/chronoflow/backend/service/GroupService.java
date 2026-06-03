@@ -471,23 +471,16 @@ public class GroupService {
         return toResponse(group, memberCount);
     }
 
-    private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval, Boolean isAdminOrCreator) {
-        return GroupResponse.builder()
-                .id(group.getId())
-                .name(group.getName())
-                .description(group.getDescription())
-                .inviteCode(group.getInviteCode())
-                .memberCount(memberCount)
-                .creatorId(group.getCreatorId())
-                .createdAt(group.getCreatedAt())
-                .requireApproval(group.getRequireApproval())
-                .pendingApproval(pendingApproval)
-                .isAdminOrCreator(isAdminOrCreator)
-                .build();
-    }
-
     private GroupResponse toResponse(Group group, int memberCount) {
         return toResponse(group, memberCount, null, null);
+    }
+
+    private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval) {
+        return toResponse(group, memberCount, pendingApproval, null);
+    }
+
+    private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval, Boolean isAdminOrCreator) {
+        return toResponse(group, memberCount, pendingApproval, isAdminOrCreator, null);
     }
 
     private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval, Boolean isAdminOrCreator, Boolean hasChildren) {
@@ -506,10 +499,6 @@ public class GroupService {
                 .depth(group.getDepth())
                 .hasChildren(hasChildren)
                 .build();
-    }
-
-    private GroupResponse toResponse(Group group, int memberCount, Boolean pendingApproval) {
-        return toResponse(group, memberCount, pendingApproval, null, null);
     }
 
     public void updateMemberNickname(String groupId, Long userId, String nickname) {
