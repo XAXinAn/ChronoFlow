@@ -325,6 +325,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             if (_canManageSettings)
               Material(
                 color: Colors.white,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                 decoration: BoxDecoration(
