@@ -323,11 +323,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
             // 入群验证开关
             if (_canManageSettings)
-              Container(
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.black12),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
@@ -379,6 +381,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   onChanged: _updateRequireApproval,
                   activeTrackColor: Colors.green,
                 ),
+              ),
               ),
 
             if (_canManageSettings) ...[
