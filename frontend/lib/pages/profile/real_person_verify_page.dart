@@ -44,6 +44,7 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
     if (!RegExp(r'^\d{17}[\dXx]$').hasMatch(idCard)) { MessageUtils.show(context, '请输入正确的18位身份证号'); return; }
 
     final regArgs = _regArgs;
+    print('real_person_verify: regArgs=$regArgs, hasPhone=${regArgs?.containsKey('phone')}');
 
     setState(() { _loading = true; _status = '正在获取设备信息...'; });
     try {
