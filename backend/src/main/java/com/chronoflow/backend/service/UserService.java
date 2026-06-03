@@ -164,30 +164,6 @@ public class UserService implements UserDetailsService {
         userMapper.updateById(user);
     }
 
-    /**
-     * Save real-person verification result to user record.
-     *
-     * @param userId         authenticated user
-     * @param realName       user's real name (plaintext)
-     * @param idCardNumber   user's ID card number (already encrypted by caller)
-     */
-    @Transactional
-    public void saveRealPersonVerification(Long userId, String realName, String idCardNumber) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new UsernameNotFoundException("用户不存在");
-        }
-        if (Boolean.TRUE.equals(user.getRealNameVerified())) {
-            // Already verified — idempotent, don't overwrite
-            return;
-        }
-        user.setRealNameVerified(true);
-        user.setRealName(realName);
-        user.setIdCardNumber(idCardNumber);
-        user.setVerifiedAt(LocalDateTime.now());
-        userMapper.updateById(user);
-    }
-
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         User user = userMapper.selectById(userId);
         if (user == null) {
