@@ -65,6 +65,8 @@ public class UserController {
         result.put("nickname", user.getNickname());
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
+        result.put("realNameVerified", user.getRealNameVerified());
+        result.put("realName", user.getRealName());
         return ResponseEntity.ok(result);
     }
 
@@ -91,6 +93,8 @@ public class UserController {
         result.put("nickname", user.getNickname());
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
+        result.put("realNameVerified", user.getRealNameVerified());
+        result.put("realName", user.getRealName());
         return ResponseEntity.ok(result);
     }
 
@@ -130,6 +134,8 @@ public class UserController {
         result.put("nickname", user.getNickname());
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
+        result.put("realNameVerified", user.getRealNameVerified());
+        result.put("realName", user.getRealName());
         return ResponseEntity.ok(result);
     }
 
@@ -166,6 +172,7 @@ public class UserController {
         result.put("email", user.getEmail());
         result.put("phone", user.getPhone());
         result.put("realNameVerified", user.getRealNameVerified() != null && user.getRealNameVerified());
+        result.put("realName", user.getRealName());
         return ResponseEntity.ok(result);
     }
 

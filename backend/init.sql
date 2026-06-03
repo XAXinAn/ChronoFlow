@@ -31,9 +31,13 @@ CREATE TABLE IF NOT EXISTS `groups` (
     require_approval TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    parent_id VARCHAR(64) DEFAULT NULL,
+    depth INT DEFAULT 0,
     INDEX idx_creator_id (creator_id),
     INDEX idx_invite_code (invite_code),
-    CONSTRAINT fk_groups_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+    INDEX idx_parent_id (parent_id),
+    CONSTRAINT fk_groups_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_groups_parent FOREIGN KEY (parent_id) REFERENCES `groups`(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 日程表
@@ -85,4 +89,30 @@ CREATE TABLE IF NOT EXISTS join_requests (
     UNIQUE KEY uk_group_user_request (group_id, user_id),
     CONSTRAINT fk_requests_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
     CONSTRAINT fk_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 子群组创建申请表
+CREATE TABLE IF NOT EXISTS subgroup_creation_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    parent_group_id VARCHAR(64) NOT NULL,
+    applicant_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_parent_group (parent_group_id),
+    INDEX idx_applicant (applicant_id),
+    CONSTRAINT fk_sub_request_group FOREIGN KEY (parent_group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
+    CONSTRAINT fk_sub_request_user FOREIGN KEY (applicant_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 日程下发目标表
+CREATE TABLE IF NOT EXISTS schedule_publish_targets (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    schedule_id BIGINT NOT NULL,
+    target_group_id VARCHAR(64) NOT NULL,
+    UNIQUE KEY uk_schedule_target (schedule_id, target_group_id),
+    CONSTRAINT fk_pub_schedule FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pub_group FOREIGN KEY (target_group_id) REFERENCES `groups`(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
