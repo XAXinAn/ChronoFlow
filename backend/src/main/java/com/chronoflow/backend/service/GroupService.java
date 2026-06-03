@@ -709,11 +709,17 @@ public class GroupService {
                 new QueryWrapper<Group>().eq("parent_id", parentGroupId));
         return children.stream()
                 .map(g -> {
-                    int count = groupMemberMapper.selectCount(
+                    int memberCount = groupMemberMapper.selectCount(
                             new QueryWrapper<GroupMember>().eq("group_id", g.getId())).intValue();
                     boolean hasChild = groupMapper.selectCount(
                             new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
-                    return toResponse(g, count, null, null, hasChild);
+                    int descendantCount = 0;
+                    if (hasChild) {
+                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1; // exclude self
+                    }
+                    GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
+                    resp.setDescendantCount(descendantCount);
+                    return resp;
                 })
                 .collect(Collectors.toList());
     }

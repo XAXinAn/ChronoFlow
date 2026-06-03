@@ -12,6 +12,7 @@ class Group {
   final String? parentId;
   final int depth;
   final bool hasChildren;
+  final int descendantCount;
   final List<Group>? children;
 
   Group({
@@ -28,6 +29,7 @@ class Group {
     this.parentId,
     this.depth = 0,
     this.hasChildren = false,
+    this.descendantCount = 0,
     this.children,
   });
 
@@ -47,6 +49,7 @@ class Group {
       isAdminOrCreator: json['isAdminOrCreator'] ?? false,
       parentId: json['parentId'],
       depth: json['depth'] ?? 0,
+      descendantCount: json['descendantCount'] ?? 0,
       hasChildren: json['hasChildren'] ?? false,
       children: json['children'] != null
           ? (json['children'] as List).map((e) => Group.fromJson(e)).toList()

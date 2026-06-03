@@ -147,7 +147,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(child.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                        Text('${child.memberCount} 人${child.hasChildren ? " · 含子群" : ""}', style: const TextStyle(fontSize: 12, color: Colors.black45)),
+                        Text('${child.memberCount} 人${child.descendantCount > 0 ? " · ${child.descendantCount}个子群组" : ""}', style: const TextStyle(fontSize: 12, color: Colors.black45)),
                       ])),
                       const Icon(Icons.chevron_right, size: 18, color: Colors.black26),
                     ]),

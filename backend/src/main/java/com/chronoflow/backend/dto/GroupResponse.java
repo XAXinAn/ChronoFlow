@@ -27,5 +27,6 @@ public class GroupResponse {
     private String parentId;
     private Integer depth;
     private Boolean hasChildren;
+    private Integer descendantCount;
     private List<GroupResponse> children;
 }
