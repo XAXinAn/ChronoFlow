@@ -31,3 +31,7 @@ frontend/ios/Pods/
 frontend/ios/Flutter/.last_build_id
 start-prod.sh
 frontend/android/app/chronoflow.keystore
+
+# ===== 发布/备份 =====
+release/
+db_backup/
