@@ -478,11 +478,6 @@ MessageUtils.show(context, '搜索失败: $e');
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: _showCameraOptions,
-                    child: const Icon(Icons.camera_alt_outlined, size: 24),
-                  ),
                 ],
               ),
             )
@@ -616,9 +611,19 @@ MessageUtils.show(context, '搜索失败: $e');
 
   Widget _buildHomeContent() {
     return RefreshIndicator(
-      onRefresh: _loadSchedules,
+      onRefresh: () async { _showCameraOptions(); },
       child: CustomScrollView(
         slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(
+                '下拉打开相机识别日程',
+                style: TextStyle(fontSize: 12, color: Colors.black26),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
