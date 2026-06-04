@@ -119,8 +119,6 @@ class _ChangePhonePageState extends State<ChangePhonePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 80),
-              Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w200), textAlign: TextAlign.center),
               const SizedBox(height: 64),
               ChronoInputField(controller: _phoneController, focusNode: _phoneFocus, hint: isChanging ? '新手机号' : '手机号', focused: _phoneFocused),
               const SizedBox(height: 24),
