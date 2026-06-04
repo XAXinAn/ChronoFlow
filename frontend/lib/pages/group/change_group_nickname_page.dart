@@ -27,7 +27,9 @@ class _ChangeGroupNicknamePageState extends State<ChangeGroupNicknamePage> {
   @override
   void initState() {
     super.initState();
-    _nicknameController.text = widget.currentNickname;
+    _nicknameController.text = widget.currentNickname.isNotEmpty
+        ? widget.currentNickname
+        : (AuthService.currentUser?.nickname ?? '');
     _nicknameFocus.addListener(() => setState(() => _nicknameFocused = _nicknameFocus.hasFocus));
   }
 
