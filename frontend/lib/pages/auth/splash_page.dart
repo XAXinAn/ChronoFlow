@@ -38,7 +38,7 @@ class _SplashPageState extends State<SplashPage> {
 
     // 从服务器同步最新的用户信息（实名认证状态等）
     if (AuthService.currentUser != null) {
-      try { await AuthService.refreshUserInfo(); } catch (_) {}
+      try { await AuthService().refreshUserInfo(); } catch (_) {}
     }
     if (!mounted) return;
 
