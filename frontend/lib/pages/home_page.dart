@@ -611,23 +611,30 @@ MessageUtils.show(context, '搜索失败: $e');
 
   Widget _buildHomeContent() {
     return RefreshIndicator(
-      onRefresh: () async { _showCameraOptions(); },
+      onRefresh: _loadSchedules,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                '下拉打开相机识别日程',
-                style: TextStyle(fontSize: 12, color: Colors.black26),
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.all(16),
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity != null && details.primaryVelocity! < -500) {
+                    _showCameraOptions();
+                  }
+                },
+                child: _buildCalendarCard(),
               ),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _buildCalendarCard(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                '← 左滑日历打开相机识别日程',
+                style: TextStyle(fontSize: 12, color: Colors.black26),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
           SliverToBoxAdapter(
