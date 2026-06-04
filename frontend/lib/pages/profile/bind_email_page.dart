@@ -119,12 +119,6 @@ class _BindEmailPageState extends State<BindEmailPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 80),
-              Text(
-                isChanging ? '更换邮箱' : '绑定邮箱',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w200),
-                textAlign: TextAlign.center,
-              ),
               const SizedBox(height: 64),
               ChronoInputField(controller: _emailController, focusNode: _emailFocus, hint: '邮箱', focused: _emailFocused),
               const SizedBox(height: 24),

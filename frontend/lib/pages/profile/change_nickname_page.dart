@@ -74,8 +74,6 @@ class _ChangeNicknamePageState extends State<ChangeNicknamePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 80),
-              const Text('修改昵称', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200), textAlign: TextAlign.center),
-              const SizedBox(height: 16),
               const Text(
                 '昵称30天只能修改一次',
                 style: TextStyle(fontSize: 12, color: Colors.black38),

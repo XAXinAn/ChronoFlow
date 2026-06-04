@@ -143,7 +143,7 @@ MessageUtils.show(context, '搜索失败: $e');
               title: const Text('从相册选择', style: TextStyle(color: Colors.black)),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
+                _pickImageFromGallery();
               },
             ),
           ],
@@ -226,19 +226,35 @@ MessageUtils.show(context, '搜索失败: $e');
 
   Future<void> _pickImageFromGallery({bool isGroup = false, String? groupId, String? groupName}) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-      if (image != null) {
-        _processImage(image, isGroup: isGroup, groupId: groupId, groupName: groupName);
+      final images = await _picker.pickMultiImage(imageQuality: 80, maxWidth: 1920, maxHeight: 1920);
+      if (images.isEmpty) return;
+      if (!mounted) return;
+      setState(() { _isParsing = true; _parsingStep = '正在识别...'; _parsingProgress = 0; });
+      final allSchedules = <Schedule>[];
+      for (int i = 0; i < images.length; i++) {
+        if (!mounted) return;
+        setState(() { _parsingStep = '识别中 (${i + 1}/${images.length})'; _parsingProgress = (i + 0.5) / images.length; });
+        try {
+          final ocr = await _textRecognizer.processImage(InputImage.fromFilePath(images[i].path));
+          if (ocr.text.isEmpty) continue;
+          final results = await ScheduleService().parseNotification(ocr.text);
+          for (final r in results) {
+            DateTime t = DateTime.now();
+            final d = r['eventDate'] ?? ''; if (d.isNotEmpty) { try { t = DateTime.parse(d); } catch (_) {} }
+            final tm = r['eventTime'] ?? ''; if (tm.isNotEmpty) {
+              try { final p = tm.split(':'); if (p.length >= 2) t = DateTime(t.year, t.month, t.day, int.parse(p[0]), int.parse(p[1])); } catch (_) {}
+            }
+            allSchedules.add(Schedule.create(title: r['title'] ?? '未命名日程', description: r['remark'] ?? '', location: r['location'] ?? '', time: t));
+          }
+        } catch (_) {}
       }
+      if (!mounted) return;
+      setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
+      if (allSchedules.isEmpty) { MessageUtils.show(context, '未检测到日程'); return; }
+      final confirmed = await Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)));
+      if (confirmed != null && mounted) _loadSchedules();
     } catch (e) {
-      if (mounted) {
-        MessageUtils.show(context, '打开相册失败: $e');
-      }
+      if (mounted) MessageUtils.show(context, '打开相册失败: $e');
     }
   }
 
@@ -478,6 +494,38 @@ MessageUtils.show(context, '搜索失败: $e');
                       ),
                     ),
                   ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationPage()),
+                      );
+                      _loadNotificationCount();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(Icons.notifications_outlined, size: 26, color: Colors.black),
+                          if (_pendingNotificationCount > 0)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -488,37 +536,16 @@ MessageUtils.show(context, '搜索失败: $e');
                     '发现',
                     style: TextStyle(fontWeight: FontWeight.w300),
                   ),
-                  actions: [
-                    Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, size: 24),
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const NotificationPage()),
-                            );
-                            _loadNotificationCount();
-                          },
-                        ),
-                        if (_pendingNotificationCount > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
                 )
-              : null,
+              : _currentIndex == 2
+                  ? AppBar(
+                      automaticallyImplyLeading: false,
+                      title: const Text(
+                        '共享',
+                        style: TextStyle(fontWeight: FontWeight.w300),
+                      ),
+                    )
+                  : null,
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
               onPressed: () async {
@@ -553,11 +580,12 @@ MessageUtils.show(context, '搜索失败: $e');
               setState(() {
                 _currentIndex = index;
               });
-              if (index == 1) _loadNotificationCount();
+              _loadNotificationCount();
             },
             children: [
               _buildHomeContent(),
               _buildDiscoverContent(),
+              _buildGroupContent(),
               _buildProfileContent(),
             ],
           ),
@@ -603,6 +631,7 @@ MessageUtils.show(context, '搜索失败: $e');
         items: const [
           BottomNavigationBarItem(label: '首页', icon: Icon(Icons.home_outlined)),
           BottomNavigationBarItem(label: '发现', icon: Icon(Icons.explore_outlined)),
+          BottomNavigationBarItem(label: '共享', icon: Icon(Icons.group_outlined)),
           BottomNavigationBarItem(label: '我的', icon: Icon(Icons.person_outline)),
         ],
       ),
@@ -695,7 +724,7 @@ MessageUtils.show(context, '搜索失败: $e');
               child: _buildCameraAction(
                 icon: Icons.photo_library_outlined,
                 label: '相册上传',
-                onTap: () => _pickImage(ImageSource.gallery),
+                onTap: () => _pickImageFromGallery(),
               ),
             ),
           ],
@@ -843,23 +872,15 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   Widget _buildDiscoverContent() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            _buildDiscoverItem(Icons.qr_code_scanner, '扫一扫', onTap: _openQrScanner),
-            _buildDiscoverItem(Icons.group, '我的群组', onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GroupPage()),
-              );
-            }),
-          ],
-        ),
+    return const SafeArea(
+      child: Center(
+        child: Text('敬请期待', style: TextStyle(color: Colors.black26, fontSize: 15)),
       ),
     );
+  }
+
+  Widget _buildGroupContent() {
+    return const GroupPage();
   }
 
   Widget _buildDiscoverItem(IconData icon, String label, {VoidCallback? onTap}) {
@@ -937,13 +958,10 @@ MessageUtils.show(context, '搜索失败: $e');
                         },
                         child: Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                AuthService.currentUser?.nickname ?? widget.username,
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
+                            Text(
+                              AuthService.currentUser?.nickname ?? widget.username,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
-                            const Icon(Icons.edit, size: 16, color: Colors.black38),
                           ],
                         ),
                       ),
@@ -953,23 +971,9 @@ MessageUtils.show(context, '搜索失败: $e');
                         style: const TextStyle(fontSize: 13, color: Colors.black54),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            AuthService.currentUser?.realName ?? '未认证',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AuthService.currentUser?.realNameVerified == true
-                                  ? Colors.green
-                                  : Colors.orange,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (AuthService.currentUser?.realNameVerified == true) ...[
-                            const SizedBox(width: 6),
-                            Icon(Icons.verified, size: 14, color: Colors.green.shade400),
-                          ],
-                        ],
+                      Text(
+                        '实名认证：${AuthService.currentUser?.realNameVerified == true ? (AuthService.currentUser?.realName ?? '已认证') : '未认证'}',
+                        style: const TextStyle(fontSize: 13, color: Colors.black54),
                       ),
                     ],
                   ),
@@ -1003,14 +1007,14 @@ MessageUtils.show(context, '搜索失败: $e');
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.email_outlined, size: 22, color: hasEmail ? Colors.green : Colors.black54),
+                        Icon(Icons.email_outlined, size: 22, color: Colors.black54),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
                             hasEmail ? email! : '点击绑定邮箱',
                             style: TextStyle(
                               fontSize: 15,
-                              color: hasEmail ? Colors.black : Colors.black38,
+                              color: hasEmail ? Colors.black : Colors.black87,
                             ),
                           ),
                         ),
@@ -1047,7 +1051,7 @@ MessageUtils.show(context, '搜索失败: $e');
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.phone_outlined, size: 22, color: hasPhone ? Colors.green : Colors.black54),
+                        Icon(Icons.phone_outlined, size: 22, color: Colors.black54),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
@@ -1065,7 +1069,11 @@ MessageUtils.show(context, '搜索失败: $e');
                 ),
               ),
             ),
-            _buildProfileItem(Icons.lock_outline, '修改密码', onTap: () => Navigator.pushNamed(context, '/change-password')),
+            _buildProfileItem(Icons.lock_outline, '修改密码', onTap: () async {
+              await Navigator.pushNamed(context, '/change-password');
+              setState(() {});
+            }),
+            _buildProfileItem(Icons.qr_code_scanner, '扫一扫', onTap: _openQrScanner),
             _buildProfileItem(Icons.info_outline, '关于', onTap: () => Navigator.pushNamed(context, '/about')),
             const SizedBox(height: 24),
             _buildProfileItem(Icons.logout, '退出登录', onTap: () => _showLogoutDialog()),
@@ -1303,36 +1311,16 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   Future<void> _logout() async {
-    try {
-      final token = await AuthService.getAccessToken();
-      final refreshToken = await AuthService.getRefreshToken();
-      if (token != null && refreshToken != null) {
-        await AuthService().logout(token, refreshToken);
-      }
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      if (mounted) {
-        MessageUtils.show(context, '退出失败: $e');
-      }
+    await AuthService().logout();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
 
   Future<void> _deleteAccount() async {
-    try {
-      final token = await AuthService.getAccessToken();
-      final refreshToken = await AuthService.getRefreshToken();
-      if (token != null && refreshToken != null) {
-        await AuthService().deleteAccount(token, refreshToken);
-      }
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    } catch (e) {
-      if (mounted) {
-        MessageUtils.show(context, '注销失败: $e');
-      }
+    await AuthService().deleteAccount();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
 }

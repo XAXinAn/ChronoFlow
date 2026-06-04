@@ -24,7 +24,7 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage> {
   bool _isLoading = true;
   static const String _privacyAcceptedKey = 'privacy_accepted';
-  String? _sharedImagePath;
+  List<String>? _sharedImagePaths;
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _SplashPageState extends State<SplashPage> {
     if (sharedFiles.isNotEmpty) {
       final imageFiles = sharedFiles.where((f) => f.type == SharedMediaType.image).toList();
       if (imageFiles.isNotEmpty) {
-        _sharedImagePath = imageFiles.first.path;
+        _sharedImagePaths = imageFiles.map((f) => f.path).toList();
       }
     }
 
@@ -243,12 +243,12 @@ class _SplashPageState extends State<SplashPage> {
     setState(() => _isLoading = false);
 
     // If there's a shared image, go to SharedImageHandler
-    if (_sharedImagePath != null) {
+    if (_sharedImagePaths != null) {
       ReceiveSharingIntent.instance.reset();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => SharedImageHandler(initialImagePath: _sharedImagePath),
+          builder: (_) => SharedImageHandler(initialImagePaths: _sharedImagePaths),
         ),
       );
       return;

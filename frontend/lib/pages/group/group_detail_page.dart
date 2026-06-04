@@ -25,10 +25,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   List<Group> _children = [];
   int _pendingJoinCount = 0;
   int _pendingSubgroupCount = 0;
+  late String _groupName;
 
   @override
   void initState() {
     super.initState();
+    _groupName = widget.group.name;
     _checkPermissions();
     _loadChildren();
   }
@@ -132,7 +134,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name), centerTitle: true),
+      appBar: AppBar(title: Text(_groupName), centerTitle: true),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -185,7 +187,12 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           ],
           // 成员
           InkWell(
-            onTap: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupMembersPage(group: widget.group))); },
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupMembersPage(group: widget.group)));
+              _checkPermissions();
+              _loadPendingCounts();
+              if (mounted) setState(() {});
+            },
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -247,7 +254,21 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           const SizedBox(height: 12),
           if (_isCreator || _isAdmin) ...[
             InkWell(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GroupSettingsPage(group: widget.group))),
+              onTap: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupSettingsPage(group: widget.group)));
+                if (result != null && mounted) {
+                  final data = result as Map;
+                  if (data['dissolved'] == true || data['transferred'] == true) {
+                    if (mounted) Navigator.pop(context, true);
+                    return;
+                  }
+                  _groupName = data['name'] ?? _groupName;
+                  _checkPermissions();
+                  _loadChildren();
+                  _loadPendingCounts();
+                  setState(() {});
+                }
+              },
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.all(16),
