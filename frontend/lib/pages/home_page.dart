@@ -610,30 +610,29 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   Widget _buildHomeContent() {
-    return RefreshIndicator(
-      onRefresh: _loadSchedules,
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity != null && details.primaryVelocity! < -500) {
-                    _showCameraOptions();
-                  }
-                },
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity != null && details.primaryVelocity! < -500) {
+          _showCameraOptions();
+        }
+      },
+      child: RefreshIndicator(
+        onRefresh: _loadSchedules,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: _buildCalendarCard(),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                '← 左滑日历打开相机识别日程',
-                style: TextStyle(fontSize: 12, color: Colors.black26),
-                textAlign: TextAlign.center,
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  '← 左滑打开相机识别日程',
+                  style: TextStyle(fontSize: 12, color: Colors.black26),
+                  textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -674,6 +673,7 @@ MessageUtils.show(context, '搜索失败: $e');
             ),
         ],
       ),
+    ),
     );
   }
 
