@@ -610,30 +610,20 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   Widget _buildHomeContent() {
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity != null && details.primaryVelocity! < -500) {
-          _showCameraOptions();
-        }
-      },
-      child: RefreshIndicator(
-        onRefresh: _loadSchedules,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildCalendarCard(),
-              ),
+    return RefreshIndicator(
+      onRefresh: _loadSchedules,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildCalendarCard(),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  '← 左滑打开相机识别日程',
-                  style: TextStyle(fontSize: 12, color: Colors.black26),
-                  textAlign: TextAlign.center,
-              ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _buildCameraEntryCard(),
             ),
           ),
           SliverToBoxAdapter(
@@ -673,7 +663,69 @@ MessageUtils.show(context, '搜索失败: $e');
             ),
         ],
       ),
-    ),
+    );
+  }
+
+  Widget _buildCameraEntryCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildCameraAction(
+                icon: Icons.camera_alt_outlined,
+                label: '拍照识别',
+                onTap: () => _pickImage(ImageSource.camera),
+              ),
+            ),
+            Container(width: 0.5, height: 32, color: const Color(0xFFEEEEEE)),
+            Expanded(
+              child: _buildCameraAction(
+                icon: Icons.photo_library_outlined,
+                label: '相册上传',
+                onTap: () => _pickImage(ImageSource.gallery),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCameraAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: Colors.black54),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
