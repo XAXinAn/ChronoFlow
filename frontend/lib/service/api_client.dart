@@ -211,6 +211,8 @@ class ApiClient {
             nickname: _currentUser!.nickname,
             email: _currentUser!.email,
             phone: _currentUser!.phone,
+            realNameVerified: _currentUser!.realNameVerified,
+            realName: _currentUser!.realName,
           );
           await _storage.saveUser(merged);
           setUser(merged);

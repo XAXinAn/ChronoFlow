@@ -36,6 +36,12 @@ class _SplashPageState extends State<SplashPage> {
     await AuthService.loadStoredAuth();
     if (!mounted) return;
 
+    // 从服务器同步最新的用户信息（实名认证状态等）
+    if (AuthService.currentUser != null) {
+      try { await AuthService.refreshUserInfo(); } catch (_) {}
+    }
+    if (!mounted) return;
+
     // Check for shared image on cold start
     final sharedFiles = await ReceiveSharingIntent.instance.getInitialMedia();
     if (sharedFiles.isNotEmpty) {
