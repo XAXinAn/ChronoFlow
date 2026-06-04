@@ -206,7 +206,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                         Row(
                           children: [
                             Text(
-                              member.nickname,
+                              member.nickname.isNotEmpty
+                                  ? member.nickname
+                                  : member.username,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -253,6 +255,16 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                             ],
                           ],
                         ),
+                        if (member.nickname.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            member.username,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -591,7 +603,9 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                               Row(
                                                 children: [
                                                   Text(
-                                                    member.nickname,
+                                                    member.nickname.isNotEmpty
+                                                        ? member.nickname
+                                                        : member.username,
                                                     style: const TextStyle(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.w500,
@@ -618,6 +632,16 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                                     ),
                                                   ],
                                                 ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                member.nickname.isNotEmpty
+                                                    ? member.username
+                                                    : '',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.black45,
+                                                ),
                                               ),
                                             ],
                                           ),
