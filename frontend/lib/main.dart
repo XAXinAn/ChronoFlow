@@ -151,9 +151,10 @@ class MyApp extends StatelessWidget {
               builder: (_) => const UserAgreementPage(),
             );
           case '/shared-image':
-            final imagePath = settings.arguments is String ? settings.arguments as String : null;
+            final args = settings.arguments;
+            final paths = args is List<String> ? args : (args is String ? <String>[args] : null);
             return MaterialPageRoute(
-              builder: (_) => SharedImageHandler(initialImagePath: imagePath),
+              builder: (_) => SharedImageHandler(initialImagePaths: paths),
             );
           default:
             return MaterialPageRoute(builder: (_) => const LoginPage());

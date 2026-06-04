@@ -82,14 +82,12 @@ class _GroupPageState extends State<GroupPage> {
 
   void _navigateToGroup(Group group) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => GroupDetailPage(group: group)))
-        .then((result) { if (result == true) _loadGroups(); });
+        .then((_) => _loadGroups());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('我的群组'), centerTitle: true),
-      body: Column(children: [
+    return Column(children: [
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(children: [
@@ -137,8 +135,7 @@ class _GroupPageState extends State<GroupPage> {
                           ),
                         ),
         ),
-      ]),
-    );
+    ]);
   }
 
   Widget _buildGroupItem(Group group) {

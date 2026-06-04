@@ -12,9 +12,9 @@ import '../home_page.dart';
 
 /// 处理从 Android 分享过来的图片页面
 class SharedImageHandler extends StatefulWidget {
-  final String? initialImagePath;
+  final List<String>? initialImagePaths;
 
-  const SharedImageHandler({super.key, this.initialImagePath});
+  const SharedImageHandler({super.key, this.initialImagePaths});
 
   @override
   State<SharedImageHandler> createState() => _SharedImageHandlerState();
@@ -28,15 +28,13 @@ class _SharedImageHandlerState extends State<SharedImageHandler> {
   double _progress = 0;
 
   StreamSubscription? _intentSubscription;
-  String? _pendingImagePath;
 
   @override
   void initState() {
     super.initState();
     _setupIntentListener();
-    if (widget.initialImagePath != null) {
-      _pendingImagePath = widget.initialImagePath;
-      _processImage(widget.initialImagePath!);
+    if (widget.initialImagePaths != null && widget.initialImagePaths!.isNotEmpty) {
+      _processMultipleImages(widget.initialImagePaths!);
     }
   }
 
@@ -61,137 +59,52 @@ class _SharedImageHandlerState extends State<SharedImageHandler> {
   }
 
   void _handleSharedFiles(List<SharedMediaFile> files) {
-    if (files.isEmpty) return;
-
-    // 只处理图片
+    if (files.isEmpty || _isProcessing) return;
     final imageFiles = files.where((f) => f.type == SharedMediaType.image).toList();
     if (imageFiles.isEmpty) return;
-
-    final path = imageFiles.first.path;
-    if (_pendingImagePath != path) {
-      _pendingImagePath = path;
-      _processImage(path);
-    }
+    _processMultipleImages(imageFiles.map((f) => f.path).toList());
   }
 
-  Future<void> _processImage(String path) async {
-    // 检查是否已登录
+  Future<void> _processMultipleImages(List<String> paths) async {
     final user = AuthService.currentUser;
-    if (user == null) {
-      // 未登录，先跳转到登录页面
-      _showLoginRequiredDialog();
+    if (user == null) { _showLoginRequiredDialog(); return; }
+    _isProcessing = true;
+    setState(() { _statusMessage = '正在识别...'; _progress = 0; });
+
+    final allSchedules = <Schedule>[];
+    for (int i = 0; i < paths.length; i++) {
+      setState(() { _statusMessage = '识别中 (${i + 1}/${paths.length})'; _progress = (i + 0.5) / paths.length; });
+      try {
+        final ocr = await _textRecognizer.processImage(InputImage.fromFilePath(paths[i]));
+        if (ocr.text.isEmpty) continue;
+        final results = await ScheduleService().parseNotification(ocr.text);
+        for (final r in results) {
+          DateTime t = DateTime.now();
+          final d = r['eventDate'] ?? ''; if (d.isNotEmpty) { try { t = DateTime.parse(d); } catch (_) {} }
+          final tm = r['eventTime'] ?? ''; if (tm.isNotEmpty) {
+            try { final p = tm.split(':'); if (p.length >= 2) t = DateTime(t.year, t.month, t.day, int.parse(p[0]), int.parse(p[1])); } catch (_) {}
+          }
+          allSchedules.add(Schedule.create(title: r['title'] ?? '未命名日程', description: r['remark'] ?? '', location: r['location'] ?? '', time: t));
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+    setState(() { _isProcessing = false; _statusMessage = ''; _progress = 0; });
+
+    if (allSchedules.isEmpty) {
+      MessageUtils.show(context, '未检测到日程');
+      Navigator.pop(context);
       return;
     }
 
-    if (_isProcessing) return;
-
-    setState(() {
-      _isProcessing = true;
-      _statusMessage = '正在识别文字...';
-      _progress = 0.3;
-    });
-
-    try {
-      final inputImage = InputImage.fromFilePath(path);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      final ocrResult = recognizedText.text;
-
-      if (ocrResult.isEmpty) {
-        setState(() {
-          _isProcessing = false;
-          _statusMessage = '';
-          _progress = 0;
-        });
-        if (mounted) {
-          MessageUtils.show(context, '未检测到文字，请换一张图片试试');
-        }
-        return;
-      }
-
-      setState(() {
-        _statusMessage = '正在解析日程...';
-        _progress = 0.7;
-      });
-
-      final results = await ScheduleService().parseNotification(ocrResult);
-
-      setState(() {
-        _isProcessing = false;
-        _statusMessage = '';
-        _progress = 0;
-      });
-
-      if (!mounted) return;
-
-      if (results.isNotEmpty) {
-        final schedules = results.map((r) {
-          final dateStr = r['eventDate'] ?? '';
-          final timeStr = r['eventTime'] ?? '';
-          DateTime scheduleTime = DateTime.now();
-          if (dateStr.isNotEmpty) {
-            try {
-              scheduleTime = DateTime.parse(dateStr);
-            } catch (_) {}
-          }
-          if (timeStr.isNotEmpty) {
-            try {
-              final parts = timeStr.split(':');
-              if (parts.length >= 2) {
-                scheduleTime = DateTime(
-                  scheduleTime.year,
-                  scheduleTime.month,
-                  scheduleTime.day,
-                  int.parse(parts[0]),
-                  int.parse(parts[1]),
-                );
-              }
-            } catch (_) {}
-          }
-          return Schedule.create(
-            title: r['title'] ?? '未命名日程',
-            description: r['remark'] ?? '',
-            location: r['location'] ?? '',
-            time: scheduleTime,
-          );
-        }).toList();
-
-        // 直接 push，不等待结果，让 ConfirmSchedulePage 内部处理保存和返回
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ConfirmSchedulePage(
-              parsedSchedules: schedules,
-            ),
-          ),
-        ).then((_) {
-          // ConfirmSchedulePage 保存完成后会 pop 回来，然后直接跳首页
-          if (mounted) {
-            final user = AuthService.currentUser;
-            if (user != null) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => HomePage(loginResponse: user),
-                ),
-              );
-            }
-          }
-        });
-      } else {
-        MessageUtils.show(context, '未解析到日程信息');
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      setState(() {
-        _isProcessing = false;
-        _statusMessage = '';
-        _progress = 0;
-      });
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)))
+        .then((_) {
       if (mounted) {
-        MessageUtils.show(context, '解析失败: $e');
-        Navigator.pop(context);
+        final user = AuthService.currentUser;
+        if (user != null) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(loginResponse: user)));
       }
-    }
+    });
   }
 
   void _showLoginRequiredDialog() {

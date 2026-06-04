@@ -4,6 +4,8 @@ import '../../service/auth_service.dart';
 import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 import 'change_group_nickname_page.dart';
+import 'change_group_name_page.dart';
+import 'transfer_ownership_page.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final Group group;
@@ -23,11 +25,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   bool _isChecking = true;
   bool _isFirstBuild = true;
   String _myNickname = '';
+  late String _groupName;
 
   @override
   void initState() {
     super.initState();
     _requireApproval = widget.group.requireApproval;
+    _groupName = widget.group.name;
     _checkPermissions();
   }
 
@@ -88,6 +92,93 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
+  Widget _buildRenameCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChangeGroupNamePage(
+                  groupId: widget.group.id,
+                  currentName: _groupName,
+                ),
+              ),
+            );
+            if (result != null && mounted) {
+              setState(() => _groupName = result);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.edit_outlined, size: 22, color: Colors.blue.shade400)),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('修改群名称', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(_groupName, style: TextStyle(fontSize: 13, color: Colors.black54)),
+              ])),
+              Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransferCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TransferOwnershipPage(group: widget.group)),
+            );
+            if (result == true && mounted) {
+              Navigator.pop(context, {'name': _groupName, 'transferred': true});
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.swap_horiz, size: 22, color: Colors.orange.shade400)),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('转让群主', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text('将群主身份转让给其他成员', style: TextStyle(fontSize: 13, color: Colors.black54)),
+              ])),
+              Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _dissolveGroup() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -101,7 +192,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
           ],
         ),
         content: const Text(
-          '确定要解散该群组吗？\n\n解散后群组所有数据将被删除，此操作不可恢复。',
+          '确定要解散该群组吗？\n\n解散后群组所有数据将被删除，此操作不可恢复。\n\n如有子群组，请先逐个解散子群组。',
           style: TextStyle(height: 1.5),
         ),
         actions: [
@@ -130,7 +221,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     try {
       await _groupService.deleteGroup(widget.group.id);
       if (mounted) {
-        Navigator.pop(context, true);
+        Navigator.pop(context, {'name': _groupName, 'dissolved': true});
       }
     } catch (e) {
       if (mounted) {
@@ -154,13 +245,24 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('群组设置'),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.white,
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pop(context, {'name': _groupName});
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('群组设置'),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context, {'name': _groupName}),
+          ),
+        ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -250,6 +352,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 ),
               ),
             ),
+
+            // 修改群名称（群主/管理员可见）
+            if (_canManageSettings) ...[
+              const SizedBox(height: 16),
+              _buildRenameCard(),
+            ],
+            if (_isCreator) ...[
+              const SizedBox(height: 12),
+              _buildTransferCard(),
+            ],
 
             const SizedBox(height: 24),
 
@@ -400,6 +512,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
               ),
           ],
         ),
+      ),
       ),
     );
   }

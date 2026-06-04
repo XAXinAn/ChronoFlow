@@ -277,11 +277,10 @@ public class AuthService {
 
         User user = userService.findByUsername(username);
 
-        // Logout (blacklist tokens)
-        logout(accessToken, refreshToken);
-
-        // Delete user refresh token and account
-        refreshTokenService.deleteRefreshToken(user.getId());
+        // Delete account first (may throw if user owns groups with other members)
         userService.deleteUser(user.getId());
+
+        // Then blacklist tokens (only reached if deleteUser succeeded)
+        logout(accessToken, refreshToken);
     }
 }

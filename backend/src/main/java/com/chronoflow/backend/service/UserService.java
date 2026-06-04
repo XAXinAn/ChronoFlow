@@ -25,6 +25,7 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final ContentModerationService contentModerationService;
     private final GroupMemberMapper groupMemberMapper;
+    private final com.chronoflow.backend.mapper.GroupMapper groupMapper;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -84,7 +85,33 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
+    @Transactional
     public void deleteUser(Long userId) {
+        // Safety check: don't delete user if they own groups with other members
+        java.util.List<com.chronoflow.backend.entity.Group> ownedGroups =
+                groupMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.Group>()
+                        .eq("creator_id", userId));
+        for (com.chronoflow.backend.entity.Group g : ownedGroups) {
+            long memberCount = groupMemberMapper.selectCount(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<GroupMember>()
+                            .eq("group_id", g.getId()));
+            boolean creatorIsMember = groupMemberMapper.exists(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<GroupMember>()
+                            .eq("group_id", g.getId())
+                            .eq("user_id", userId));
+            long otherCount = memberCount - (creatorIsMember ? 1 : 0);
+            if (otherCount > 0) {
+                throw new BusinessException("你创建的群组「" + g.getName() + "」中还有其他成员，请先将群主转让给其他管理员后再注销");
+            }
+            // Check for child groups before dissolving
+            long childCount = groupMapper.selectCount(
+                    new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.Group>()
+                            .eq("parent_id", g.getId()));
+            if (childCount > 0) {
+                throw new BusinessException("你创建的群组「" + g.getName() + "」下有 " + childCount + " 个子群组，请先逐个解散子群组后再注销");
+            }
+            groupMapper.deleteById(g.getId());
+        }
         userMapper.deleteById(userId);
     }
 

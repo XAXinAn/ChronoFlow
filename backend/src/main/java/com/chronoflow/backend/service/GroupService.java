@@ -177,6 +177,13 @@ public class GroupService {
             throw new BusinessException("只有群主可以删除群组");
         }
 
+        // Check for child groups before dissolving
+        long childCount = groupMapper.selectCount(
+                new QueryWrapper<Group>().eq("parent_id", groupId));
+        if (childCount > 0) {
+            throw new BusinessException("该群组下有 " + childCount + " 个子群组，无法直接解散。请先逐个解散子群组后再操作");
+        }
+
         // 删除所有成员
         groupMemberMapper.delete(
                 new QueryWrapper<GroupMember>().eq("group_id", groupId)
@@ -304,6 +311,73 @@ public class GroupService {
             group.setRequireApproval(requireApproval);
             groupMapper.updateById(group);
         }
+    }
+
+    /**
+     * Update group name. Only the group creator can rename.
+     */
+    public void updateGroupName(Long userId, String groupId, String newName) {
+        Group group = groupMapper.selectById(groupId);
+        if (group == null) {
+            throw new BusinessException("群组不存在");
+        }
+        if (!isCreatorOrAdmin(userId, group)) {
+            throw new BusinessException("只有群主/管理员可以修改群组名称");
+        }
+        if (newName == null || newName.isBlank()) {
+            throw new BusinessException("群组名称不能为空");
+        }
+        if (newName.length() > 100) {
+            throw new BusinessException("群组名称不能超过100个字符");
+        }
+        moderate(newName.trim(), "群组名称");
+        group.setName(newName.trim());
+        groupMapper.updateById(group);
+    }
+
+    /**
+     * Transfer group ownership from creator to another member.
+     * Only the current creator can transfer. Target must be a member of the group.
+     */
+    @Transactional
+    public void transferOwnership(Long currentCreatorId, String groupId, Long newCreatorId) {
+        Group group = groupMapper.selectById(groupId);
+        if (group == null) {
+            throw new BusinessException("群组不存在");
+        }
+        if (!group.getCreatorId().equals(currentCreatorId)) {
+            throw new BusinessException("只有群主可以转让群主");
+        }
+        if (currentCreatorId.equals(newCreatorId)) {
+            throw new BusinessException("不能转让给自己");
+        }
+
+        // Verify target is a member of this group
+        GroupMember targetMember = groupMemberMapper.selectOne(
+                new QueryWrapper<GroupMember>()
+                        .eq("group_id", groupId)
+                        .eq("user_id", newCreatorId));
+        if (targetMember == null) {
+            throw new BusinessException("目标用户不是本群成员");
+        }
+
+        // Update group creator
+        group.setCreatorId(newCreatorId);
+        groupMapper.updateById(group);
+
+        // Remove admin status from old creator (now a regular member)
+        GroupMember oldCreator = groupMemberMapper.selectOne(
+                new QueryWrapper<GroupMember>()
+                        .eq("group_id", groupId)
+                        .eq("user_id", currentCreatorId));
+        if (oldCreator != null) {
+            oldCreator.setIsAdmin(false);
+            groupMemberMapper.updateById(oldCreator);
+        }
+
+        // Make new creator an admin
+        targetMember.setIsAdmin(true);
+        groupMemberMapper.updateById(targetMember);
     }
 
     public List<JoinRequest> getJoinRequests(String groupId) {
