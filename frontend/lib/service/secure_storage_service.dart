@@ -33,6 +33,8 @@ class SecureStorageService {
       'nickname': user.nickname,
       'email': user.email,
       'phone': user.phone,
+      'realNameVerified': user.realNameVerified,
+      'realName': user.realName,
     }));
   }
 

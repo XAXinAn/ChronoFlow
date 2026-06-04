@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/chrono_input_field.dart';
 import '../../service/real_person_service.dart';
 import '../../service/face_verify_bridge.dart';
+import '../../service/auth_service.dart';
 import '../../utils/message_utils.dart';
 
 class RealPersonVerifyPage extends StatefulWidget {
@@ -52,6 +53,7 @@ class _RealPersonVerifyPageState extends State<RealPersonVerifyPage> {
       final result = await RealPersonService().getResult(certifyId);
       if (result['verified'] == true) {
         MessageUtils.show(context, '实名认证通过');
+        await AuthService.refreshUserInfo();
         if (mounted) Navigator.pop(context, true);
       } else {
         setState(() { _loading = false; _status = ''; });
