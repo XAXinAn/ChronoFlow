@@ -106,7 +106,9 @@ public class GroupController {
                     return GroupMemberResponse.builder()
                             .userId(m.getUserId())
                             .username(user != null ? user.getUsername() : "")
-                            .nickname(m.getNickname() != null ? m.getNickname() : (user != null ? user.getUsername() : ""))
+                            .nickname(m.getNickname())
+                            .accountNickname(user != null ? user.getNickname() : "")
+                            .realName(user != null ? user.getRealName() : null)
                             .email(user != null ? user.getEmail() : "")
                             .isCreator(group.getCreatorId().equals(m.getUserId()))
                             .isAdmin(m.getIsAdmin())
@@ -363,6 +365,8 @@ public class GroupController {
         private Long userId;
         private String username;
         private String nickname;
+        private String accountNickname;
+        private String realName;
         private String email;
         private Boolean isCreator;
         private Boolean isAdmin;

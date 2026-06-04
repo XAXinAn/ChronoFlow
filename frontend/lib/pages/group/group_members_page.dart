@@ -132,6 +132,20 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
     return m.userId == widget.group.creatorId;
   }
 
+  /// 显示名称：群昵称 > 账户昵称 > 用户名
+  String _displayName(GroupMember m) {
+    if (m.nickname.isNotEmpty) return m.nickname;
+    if (m.accountNickname.isNotEmpty) return m.accountNickname;
+    return m.username;
+  }
+
+  /// 副标题：真实姓名优先，否则如果群昵称与用户名不同则展示用户名
+  String _subtitle(GroupMember m) {
+    if (m.realName != null && m.realName!.isNotEmpty) return m.realName!;
+    if (m.nickname.isNotEmpty && m.nickname != m.username) return m.username;
+    return '';
+  }
+
   void _startSelection(int userId) {
     setState(() {
       _isSelectionMode = true;
@@ -206,9 +220,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                         Row(
                           children: [
                             Text(
-                              member.nickname.isNotEmpty
-                                  ? member.nickname
-                                  : member.username,
+                              _displayName(member),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -255,10 +267,10 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                             ],
                           ],
                         ),
-                        if (member.nickname.isNotEmpty) ...[
+                        if (_subtitle(member).isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            member.username,
+                            _subtitle(member),
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
@@ -584,8 +596,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                           radius: 24,
                                           backgroundColor: Colors.blue.shade50,
                                           child: Text(
-                                            member.nickname.isNotEmpty
-                                                ? member.nickname[0].toUpperCase()
+                                            _displayName(member).isNotEmpty
+                                                ? _displayName(member)[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
                                               fontSize: 18,
@@ -603,9 +615,7 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                               Row(
                                                 children: [
                                                   Text(
-                                                    member.nickname.isNotEmpty
-                                                        ? member.nickname
-                                                        : member.username,
+                                                    _displayName(member),
                                                     style: const TextStyle(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.w500,
@@ -633,16 +643,16 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
                                                   ],
                                                 ],
                                               ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                member.nickname.isNotEmpty
-                                                    ? member.username
-                                                    : '',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.black45,
+                                              if (_subtitle(member).isNotEmpty) ...[
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _subtitle(member),
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.black45,
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ],
                                           ),
                                         ),
