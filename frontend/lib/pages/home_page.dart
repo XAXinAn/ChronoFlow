@@ -15,6 +15,8 @@ import 'schedule/confirm_schedule_page.dart';
 import 'schedule/search_page.dart';
 import 'group/qr_scanner_page.dart';
 import 'group/group_page.dart';
+import 'group/notification_page.dart';
+import '../service/group_service.dart';
 
 class HomePage extends StatefulWidget {
   final LoginResponse loginResponse;
@@ -43,12 +45,25 @@ class _HomePageState extends State<HomePage> {
   double _parsingProgress = 0;
   final ImagePicker _picker = ImagePicker();
   final TextRecognizer _textRecognizer = TextRecognizer(script: TextRecognitionScript.chinese);
+  int _pendingNotificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     _loadSchedules();
+    _loadNotificationCount();
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      final gs = GroupService();
+      final joins = await gs.getMyJoinRequests();
+      final subs = await gs.getMySubgroupRequests();
+      final count = joins.where((j) => j.status == 'pending').length +
+          subs.where((s) => s['status'] == 'pending').length;
+      if (mounted) setState(() => _pendingNotificationCount = count);
+    } catch (_) {}
   }
 
   @override
@@ -478,6 +493,35 @@ MessageUtils.show(context, '搜索失败: $e');
                     '发现',
                     style: TextStyle(fontWeight: FontWeight.w300),
                   ),
+                  actions: [
+                    Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined, size: 24),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const NotificationPage()),
+                            );
+                            _loadNotificationCount();
+                          },
+                        ),
+                        if (_pendingNotificationCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 )
               : null,
       floatingActionButton: _currentIndex == 0
@@ -514,6 +558,7 @@ MessageUtils.show(context, '搜索失败: $e');
               setState(() {
                 _currentIndex = index;
               });
+              if (index == 1) _loadNotificationCount();
             },
             children: [
               _buildHomeContent(),
