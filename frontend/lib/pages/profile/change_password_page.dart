@@ -106,8 +106,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 80),
-              const Text('修改密码', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200), textAlign: TextAlign.center),
               const SizedBox(height: 64),
               ChronoInputField(controller: _oldPasswordController, focusNode: _oldPasswordFocus, hint: '旧密码', focused: _oldPasswordFocused, obscureText: true),
               const SizedBox(height: 24),

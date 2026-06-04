@@ -279,25 +279,33 @@ class AuthService {
     });
   }
 
-  // 登出
-  Future<void> logout(String accessToken, String refreshToken) async {
-    try {
-      await ApiClient.post('/auth/logout', body: {'refreshToken': refreshToken});
-    } catch (e) {
-      // 网络错误时仍清理本地状态
-    } finally {
-      await ApiClient.clearAuth();
+  // 登出 - 先清本地，再尽力通知服务端
+  Future<void> logout() async {
+    final refreshToken = await _storage.getRefreshToken();
+    await ApiClient.clearAuth();
+    if (refreshToken != null) {
+      try {
+        await http.post(
+          Uri.parse('${AppConstants.baseUrl}/auth/logout'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'refreshToken': refreshToken}),
+        );
+      } catch (_) {}
     }
   }
 
   // 注销账号
-  Future<void> deleteAccount(String accessToken, String refreshToken) async {
-    try {
-      await ApiClient.post('/auth/delete-account', body: {'refreshToken': refreshToken});
-    } catch (e) {
-      // 网络错误时仍清理本地状态
-    } finally {
-      await ApiClient.clearAuth();
+  Future<void> deleteAccount() async {
+    final refreshToken = await _storage.getRefreshToken();
+    await ApiClient.clearAuth();
+    if (refreshToken != null) {
+      try {
+        await http.post(
+          Uri.parse('${AppConstants.baseUrl}/auth/delete-account'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'refreshToken': refreshToken}),
+        );
+      } catch (_) {}
     }
   }
 }

@@ -106,6 +106,28 @@ class GroupService {
     }
   }
 
+  Future<void> updateGroupName(String groupId, String newName) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/name',
+      body: {'name': newName},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '修改群组名称失败');
+    }
+  }
+
+  Future<void> transferOwnership(String groupId, int newCreatorId) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/transfer',
+      body: {'newCreatorId': newCreatorId},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '转让群主失败');
+    }
+  }
+
   Future<List<JoinRequest>> getJoinRequests(String groupId) async {
     final response = await ApiClient.get('$_baseUrl/$groupId/join-requests');
     final data = json.decode(response);

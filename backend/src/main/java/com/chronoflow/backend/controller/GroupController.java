@@ -169,6 +169,31 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success("设置成功", null));
     }
 
+    @PutMapping("/{groupId}/name")
+    public ResponseEntity<ApiResponse<Void>> updateGroupName(
+            HttpServletRequest request,
+            @PathVariable String groupId,
+            @RequestBody Map<String, String> body) {
+        Long userId = getUserIdFromRequest(request);
+        String newName = body.get("name");
+        groupService.updateGroupName(userId, groupId, newName);
+        return ResponseEntity.ok(ApiResponse.success("修改成功", null));
+    }
+
+    @PutMapping("/{groupId}/transfer")
+    public ResponseEntity<ApiResponse<Void>> transferOwnership(
+            HttpServletRequest request,
+            @PathVariable String groupId,
+            @RequestBody Map<String, Long> body) {
+        Long userId = getUserIdFromRequest(request);
+        Long newCreatorId = body.get("newCreatorId");
+        if (newCreatorId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("缺少newCreatorId参数"));
+        }
+        groupService.transferOwnership(userId, groupId, newCreatorId);
+        return ResponseEntity.ok(ApiResponse.success("转让成功", null));
+    }
+
     @GetMapping("/{groupId}/join-requests")
     public ResponseEntity<ApiResponse<List<JoinRequestResponse>>> getJoinRequests(
             HttpServletRequest request,
