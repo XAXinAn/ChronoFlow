@@ -318,6 +318,29 @@ public class GroupController {
         return ResponseEntity.ok(ApiResponse.success(approve ? "已创建子群组" : "已拒绝", subGroup));
     }
 
+    @GetMapping("/my/subgroup-requests")
+    public ResponseEntity<ApiResponse<List<MySubgroupRequestResponse>>> getMySubgroupRequests(
+            HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        List<com.chronoflow.backend.entity.SubgroupCreationRequest> requests =
+                groupService.getMySubgroupRequests(userId);
+        List<MySubgroupRequestResponse> list = requests.stream()
+                .map(r -> {
+                    Group parentGroup = groupService.getGroupById(r.getParentGroupId());
+                    return MySubgroupRequestResponse.builder()
+                            .id(r.getId())
+                            .parentGroupId(r.getParentGroupId())
+                            .parentGroupName(parentGroup != null ? parentGroup.getName() : "已删除的群组")
+                            .name(r.getName())
+                            .description(r.getDescription())
+                            .status(r.getStatus())
+                            .createdAt(r.getCreatedAt())
+                            .build();
+                })
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success("获取成功", list));
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
@@ -379,5 +402,19 @@ public class GroupController {
         private String groupId;
         private String groupName;
         private String status;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class MySubgroupRequestResponse {
+        private Long id;
+        private String parentGroupId;
+        private String parentGroupName;
+        private String name;
+        private String description;
+        private String status;
+        private java.time.LocalDateTime createdAt;
     }
 }

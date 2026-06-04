@@ -312,9 +312,19 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '发布到',
-            style: TextStyle(color: AppConstants.primaryColor, fontSize: 15, fontWeight: FontWeight.w500),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '发布到',
+                  style: TextStyle(color: AppConstants.primaryColor, fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(
+                '点击可将日程发布到群组',
+                style: TextStyle(color: AppConstants.mediumGray, fontSize: 12),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(

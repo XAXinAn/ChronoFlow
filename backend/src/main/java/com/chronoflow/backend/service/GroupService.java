@@ -563,6 +563,17 @@ public class GroupService {
     }
 
     /**
+     * Get all subgroup creation requests submitted by a user.
+     */
+    public List<SubgroupCreationRequest> getMySubgroupRequests(Long userId) {
+        return subgroupCreationRequestMapper.selectList(
+                new QueryWrapper<SubgroupCreationRequest>()
+                        .eq("applicant_id", userId)
+                        .orderByDesc("created_at")
+        );
+    }
+
+    /**
      * Approve or reject a sub-group creation request.
      * On approval: creates the sub-group with the applicant as its creator (group owner).
      */

@@ -4,8 +4,6 @@ import '../../service/auth_service.dart';
 import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 import 'change_group_nickname_page.dart';
-import 'group_join_requests_page.dart';
-import 'subgroup_requests_page.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final Group group;
@@ -88,14 +86,6 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         MessageUtils.showError(context, e);
       }
     }
-  }
-
-  void _showJoinRequests() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
-  }
-
-  void _showSubgroupRequests() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => SubgroupRequestsPage(group: widget.group)));
   }
 
   Future<void> _dissolveGroup() async {
@@ -309,87 +299,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 ),
               ),
 
-            if (_canManageSettings) ...[
-              const SizedBox(height: 16),
-              // 审核子群组创建申请
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black12),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _showSubgroupRequests(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(children: [
-                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(12)),
-                          child: Icon(Icons.account_tree_outlined, size: 22, color: Colors.teal.shade400)),
-                        const SizedBox(width: 16),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('审核子群组申请', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 2),
-                          Text('查看和处理子群组创建申请', style: TextStyle(fontSize: 13, color: Colors.black54)),
-                        ])),
-                        Icon(Icons.chevron_right, size: 20, color: Colors.black26),
-                      ]),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            if (_canManageSettings) ...[
-              const SizedBox(height: 16),
-              // 审核加群申请按钮
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black12),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _showJoinRequests(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(children: [
-                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-                          child: Icon(Icons.badge_outlined, size: 22, color: Colors.blue.shade400)),
-                        const SizedBox(width: 16),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('审核加群申请', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 2),
-                          Text('查看和处理成员的加群申请', style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 20,
-                            color: Colors.black26,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-
-            if (_isCreator) const SizedBox(height: 32),
+            if (_isCreator) const SizedBox(height: 8),
 
             // 危险区域标题
             if (_isCreator)
