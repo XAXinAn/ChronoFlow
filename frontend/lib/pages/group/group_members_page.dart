@@ -55,6 +55,8 @@ class _GroupMembersPageState extends State<GroupMembersPage> {
         userId: m.userId,
         username: m.username,
         nickname: m.nickname,
+        accountNickname: m.accountNickname,
+        realName: m.realName,
         email: m.email,
         isCreator: m.userId == creatorId,
         isAdmin: m.isAdmin,
