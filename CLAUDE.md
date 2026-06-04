@@ -122,12 +122,29 @@ flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api  # 真机
 - 任何成员可申请创建子群组 → 父群主/管理员审核 → 申请人成为子群主
 - 群主/管理员权限仅限本群
 - 日程可下发到任意子孙群组（树形多选器）
+- **群主转让**：群主可将身份转让给群内成员，转让后原群主降为普通成员
+- **修改群名称**：群主/管理员可修改群组名称（受内容审核）
+- **解散保护**：有子群组时禁止解散，需先逐个解散子群
+- **注销保护**：用户创建的群组有其他成员时禁止注销，需先转让群主
+
+### 消息通知
+- 首页右上角铃铛图标，红色圆点标识未处理消息
+- 点击进入通知列表：加群申请处理结果、子群组创建申请处理结果
+- 未处理消息卡片左上角红点，已处理变灰色
+- 点击通知可直接进入对应群组的审核页面
 
 ### 实人认证
 - 注册时强制实名：姓名+身份证+人脸活体检测
 - 两步注册：init（暂存Redis）→ 人脸SDK → confirm（写入DB）
 - 阿里云 CloudAuth ID_PRO 方案，Android SDK v2.3.48
 - 身份证号 AES-256-GCM 加密存储
+- 认证状态持久化，重启App不丢失
+
+### 图片识别
+- 首页日历下方「拍照识别」+「相册上传」卡片
+- 相册支持多选图片，逐张 OCR 识别后汇总确认
+- 系统分享菜单支持单张和多张图片发送到 App（ACTION_SEND + ACTION_SEND_MULTIPLE）
+- AI 识别多日程逐条勾选导入系统日历（复选框）
 
 ### 版本更新检测
 - GET /api/app/version 返回版本号和下载链接
@@ -139,7 +156,15 @@ flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api  # 真机
 - 认证：JWT（access token 15min + refresh token 30d）
 - 全部 API 前缀 `/api/`
 - 公开端点：`/api/auth/*`、`/api/app/version`、`/actuator/health`、`/app.apk`
+- 登出/注销也加入公开端点，即使 token 过期也能正常退出
 - 响应格式：`ApiResponse<T>`（code, message, data）
+
+### 新增 API（v1.0.1）
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/groups/{id}/name` | PUT | 修改群名称 |
+| `/api/groups/{id}/transfer` | PUT | 转让群主 |
+| `/api/groups/my/subgroup-requests` | GET | 我的子群组申请列表 |
 
 ## 生产部署
 
@@ -148,7 +173,7 @@ flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api  # 真机
 ```bash
 ./mvnw clean package -DskipTests
 scp target/backend-0.0.1-SNAPSHOT.jar chronoflow:/app/chronoflow.jar
-ssh chronoflow "cd /app && bash start.sh > app.log 2>&1 &"
+ssh chronoflow "pkill -f chronoflow.jar; cd /app && nohup bash start.sh > app.log 2>&1 &"
 ```
 环境变量在 `/app/start.sh` 中配置。
 
@@ -161,11 +186,14 @@ keytool -genkey -v -keystore chronoflow.keystore -alias chronoflow \
   -dname "CN=XAXinAn, OU=ChronoFlow, O=ChronoFlow, L=Zhoushan, ST=Zhejiang, C=CN"
 cd .. && flutter build apk --release
 ```
+已有 keystore 无需重新生成，直接 `flutter build apk --release` 即可。
 
 ### 发版流程
-1. `APP_VERSION_CODE` 递增（`/app/start.sh` 中修改）
-2. 构建 APK → `scp` 到 `/app/static/app.apk`
-3. 重启后端
+1. 更新 `pubspec.yaml` 版本号（格式 `x.y.z+N`）
+2. 更新 `splash_page.dart` 中 `_currentVersionCode` 常量
+3. 更新 `/app/start.sh` 中 `APP_VERSION` 和 `APP_VERSION_CODE`
+4. 构建 APK → `scp` 到 `/app/static/app.apk`
+5. 构建后端 → `scp` 到 `/app/chronoflow.jar` → 重启
 
 ## 待完成
 
@@ -177,6 +205,8 @@ cd .. && flutter build apk --release
 - [ ] 群组成员昵称同步 — 用户改名后群内昵称不同步
 - [ ] 密码修改后使现有 token 失效
 - [ ] HTTPS — 当前使用 HTTP 明文
+- [ ] 日程去重 — 同一通知发布到多群时日历展示合并
+- [ ] iOS 适配 — 当前仅 Android
 
 ## 开发约定
 
