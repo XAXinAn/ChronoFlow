@@ -75,8 +75,10 @@ class Group {
 
 class GroupMember {
   final int userId;
-  final String username;   // 用户名
-  final String nickname;   // 群昵称
+  final String username;        // 用户名（账号）
+  final String nickname;        // 群昵称
+  final String accountNickname; // 账户昵称
+  final String? realName;       // 真实姓名（实名认证后）
   final String email;
   final bool isCreator;
   final bool isAdmin;
@@ -85,6 +87,8 @@ class GroupMember {
     required this.userId,
     required this.username,
     required this.nickname,
+    this.accountNickname = '',
+    this.realName,
     required this.email,
     required this.isCreator,
     required this.isAdmin,
@@ -95,6 +99,8 @@ class GroupMember {
       userId: json['userId'] ?? 0,
       username: json['username'] ?? '',
       nickname: json['nickname'] ?? '',
+      accountNickname: json['accountNickname'] ?? '',
+      realName: json['realName'],
       email: json['email'] ?? '',
       isCreator: json['isCreator'] ?? false,
       isAdmin: json['isAdmin'] ?? false,
