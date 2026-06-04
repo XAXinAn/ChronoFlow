@@ -8,6 +8,8 @@ import 'group_qr_page.dart';
 import 'group_members_page.dart';
 import 'group_settings_page.dart';
 import 'create_subgroup_page.dart';
+import 'group_join_requests_page.dart';
+import 'subgroup_requests_page.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final Group group;
@@ -21,6 +23,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   bool _isLoading = true;
   bool _isCreator = false, _isAdmin = false, _isFirstBuild = true;
   List<Group> _children = [];
+  int _pendingJoinCount = 0;
+  int _pendingSubgroupCount = 0;
 
   @override
   void initState() {
@@ -41,6 +45,19 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     _isCreator = u.userId == widget.group.creatorId;
     _isAdmin = widget.group.isAdminOrCreator && !_isCreator;
     _isLoading = false;
+    _loadPendingCounts();
+  }
+
+  Future<void> _loadPendingCounts() async {
+    if (!_isCreator && !_isAdmin) return;
+    try {
+      final joins = await _groupService.getJoinRequests(widget.group.id);
+      final subs = await _groupService.getSubgroupRequests(widget.group.id);
+      if (mounted) setState(() {
+        _pendingJoinCount = joins.where((j) => j.status == 'pending').length;
+        _pendingSubgroupCount = subs.length;
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadChildren() async {
@@ -69,6 +86,47 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     if (d == 0) return '根群组';
     if (d == 1) return '直属子群组';
     return '第${d}层子群组';
+  }
+
+  Widget _buildReviewEntry({
+    required IconData icon,
+    required String label,
+    required int count,
+    required String countLabel,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(children: [
+          Icon(icon, size: 22, color: Colors.black54),
+          const SizedBox(width: 16),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 15, color: Colors.black87))),
+          if (count > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$count $countLabel',
+                style: TextStyle(fontSize: 12, color: Colors.red.shade600, fontWeight: FontWeight.w500),
+              ),
+            ),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right, size: 20, color: Colors.black26),
+        ]),
+      ),
+    );
   }
 
   @override
@@ -100,6 +158,29 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               label: const Text('申请创建子群组'),
               style: OutlinedButton.styleFrom(foregroundColor: Colors.black54, side: const BorderSide(color: Colors.black12)),
             )),
+            const SizedBox(height: 12),
+            // 审核入口（仅群主/管理员可见）
+            _buildReviewEntry(
+              icon: Icons.person_add,
+              label: '加群申请',
+              count: _pendingJoinCount,
+              countLabel: '条待处理',
+              onTap: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
+                _loadPendingCounts();
+              },
+            ),
+            const SizedBox(height: 8),
+            _buildReviewEntry(
+              icon: Icons.account_tree,
+              label: '子群组创建申请',
+              count: _pendingSubgroupCount,
+              countLabel: '条待处理',
+              onTap: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => SubgroupRequestsPage(group: widget.group)));
+                _loadPendingCounts();
+              },
+            ),
             const SizedBox(height: 12),
           ],
           // 成员

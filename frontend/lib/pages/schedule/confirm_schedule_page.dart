@@ -18,7 +18,7 @@ class ConfirmSchedulePage extends StatefulWidget {
 
 class _ConfirmSchedulePageState extends State<ConfirmSchedulePage> {
   late List<Schedule> _schedules;
-  bool _syncToCalendar = false;
+  final Set<int> _syncIndices = {};
   bool _isSaving = false;
 
   @override
@@ -44,11 +44,11 @@ class _ConfirmSchedulePageState extends State<ConfirmSchedulePage> {
         await scheduleService.createScheduleFromSchedule(s);
       }
 
-      // 2. 可选：同步到系统日历
-      if (_syncToCalendar) {
-        final calendarService = CalendarService();
-        for (final schedule in _schedules) {
-          await calendarService.exportSchedule(schedule);
+      // 2. 逐条同步到系统日历（根据用户勾选）
+      final calendarService = CalendarService();
+      for (int i = 0; i < _schedules.length; i++) {
+        if (_syncIndices.contains(i)) {
+          await calendarService.exportSchedule(_schedules[i]);
         }
       }
 
@@ -113,8 +113,6 @@ class _ConfirmSchedulePageState extends State<ConfirmSchedulePage> {
       ),
       body: Column(
         children: [
-          // 同步到系统日历开关
-          _buildCalendarSyncToggle(),
           Expanded(
             child: _schedules.isEmpty
                 ? const Center(
@@ -131,35 +129,6 @@ class _ConfirmSchedulePageState extends State<ConfirmSchedulePage> {
                       return _buildScheduleCard(index, schedule);
                     },
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCalendarSyncToggle() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFEEEEEE), width: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_today, size: 20, color: Colors.black54),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              '同步到系统日历',
-              style: TextStyle(fontSize: 14, color: Colors.black),
-            ),
-          ),
-          Switch(
-            value: _syncToCalendar,
-            onChanged: (v) => setState(() => _syncToCalendar = v),
-            activeTrackColor: Colors.black,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
       ),
@@ -259,6 +228,45 @@ class _ConfirmSchedulePageState extends State<ConfirmSchedulePage> {
                     ],
                   ),
                 ],
+                // 逐条勾选同步到系统日历
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.only(top: 10),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: Color(0xFFEEEEEE), width: 0.5)),
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_syncIndices.contains(index)) {
+                          _syncIndices.remove(index);
+                        } else {
+                          _syncIndices.add(index);
+                        }
+                      });
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _syncIndices.contains(index)
+                              ? Icons.check_box
+                              : Icons.check_box_outline_blank,
+                          size: 20,
+                          color: _syncIndices.contains(index) ? Colors.black : Colors.black38,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '同步到系统日历',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _syncIndices.contains(index) ? Colors.black : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

@@ -401,8 +401,8 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
 
             const SizedBox(height: 24),
 
-            // 同步到系统日历开关
-            _buildCalendarSyncToggle(),
+            // 同步到系统日历开关（仅新建时显示，编辑时不显示）
+            if (!isEdit) _buildCalendarSyncToggle(),
 
             const SizedBox(height: 60),
           ],
@@ -497,9 +497,19 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '发布到',
-            style: TextStyle(color: AppConstants.primaryColor, fontSize: 15, fontWeight: FontWeight.w500),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '发布到',
+                  style: TextStyle(color: AppConstants.primaryColor, fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(
+                '点击可将日程发布到群组',
+                style: TextStyle(color: AppConstants.mediumGray, fontSize: 12),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Container(
