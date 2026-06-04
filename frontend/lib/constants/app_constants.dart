@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 /// 应用常量配置
 class AppConstants {
   // API 配置 - 通过 --dart-define=BASE_URL=... 在构建时切换
-  // 模拟器：默认 10.0.2.2 → 宿主机 localhost
+  // 开发环境：云服务器 8081 端口
   // 真机调试：--dart-define=BASE_URL=http://192.168.x.x:8080/api
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://localhost:8080/api',
+    defaultValue: 'http://8.136.20.182:8081/api',
   );
 
   // 主题色 - 黑白极简风格
