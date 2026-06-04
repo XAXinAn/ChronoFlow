@@ -433,7 +433,7 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
     );
   }
 
-  /// 日历同步开关
+  /// 日历同步复选框
   Widget _buildCalendarSyncToggle() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -451,10 +451,10 @@ class _AddGroupSchedulePageState extends State<AddGroupSchedulePage> {
                     style: TextStyle(color: AppConstants.primaryColor, fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                 ),
-                Switch(
+                Checkbox(
                   value: _syncToCalendar,
-                  onChanged: (v) => setState(() => _syncToCalendar = v),
-                  activeTrackColor: Colors.black,
+                  onChanged: (v) => setState(() => _syncToCalendar = v ?? false),
+                  activeColor: Colors.black,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ],
