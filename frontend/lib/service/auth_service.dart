@@ -181,7 +181,13 @@ class AuthService {
     if (response.statusCode == 200 && data['code'] == 200) {
       return data['data']['certifyId'] as String;
     } else {
-      final msg = data['message'] ?? '注册初始化失败';
+      // If validation errors present, include field details
+      var msg = data['message'] ?? '注册初始化失败';
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final details = errors.values.join('；');
+        msg = '$msg：$details';
+      }
       throw Exception(msg);
     }
   }
