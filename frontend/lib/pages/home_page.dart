@@ -8,6 +8,7 @@ import '../model/auth_model.dart';
 import '../service/auth_service.dart';
 import '../service/schedule_service.dart';
 import '../utils/message_utils.dart';
+import '../utils/image_normalizer.dart';
 import 'schedule/add_schedule_page.dart';
 import 'schedule/add_group_schedule_page.dart';
 import 'schedule/select_group_page.dart';
@@ -235,7 +236,11 @@ MessageUtils.show(context, '搜索失败: $e');
         if (!mounted) return;
         setState(() { _parsingStep = '识别中 (${i + 1}/${images.length})'; _parsingProgress = (i + 0.5) / images.length; });
         try {
-          final ocr = await _textRecognizer.processImage(InputImage.fromFilePath(images[i].path));
+          final jpegPath = await ImageNormalizer.toJpeg(images[i].path);
+          if (jpegPath == null) continue; // 无法识别的图片，跳过（避免原生崩溃）
+          final ocr = await _textRecognizer
+              .processImage(InputImage.fromFilePath(jpegPath))
+              .timeout(const Duration(seconds: 20));
           if (ocr.text.isEmpty) continue;
           final results = await ScheduleService().parseNotification(ocr.text);
           for (final r in results) {
@@ -254,7 +259,10 @@ MessageUtils.show(context, '搜索失败: $e');
       final confirmed = await Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)));
       if (confirmed != null && mounted) _loadSchedules();
     } catch (e) {
-      if (mounted) MessageUtils.show(context, '打开相册失败: $e');
+      if (mounted) {
+        setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
+        MessageUtils.show(context, '打开相册失败: $e');
+      }
     }
   }
 
@@ -286,8 +294,17 @@ MessageUtils.show(context, '搜索失败: $e');
         _parsingProgress = 0.3;
       });
 
-      final inputImage = InputImage.fromFilePath(image.path);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
+      final jpegPath = await ImageNormalizer.toJpeg(image.path);
+      if (jpegPath == null) {
+        if (!mounted) return;
+        setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
+        MessageUtils.show(context, '无法识别该图片格式，请换一张');
+        return;
+      }
+      final inputImage = InputImage.fromFilePath(jpegPath);
+      final recognizedText = await _textRecognizer
+          .processImage(inputImage)
+          .timeout(const Duration(seconds: 20));
       final ocrResult = recognizedText.text;
 
       if (!mounted) return;

@@ -6,6 +6,7 @@ import '../../model/schedule_model.dart';
 import '../../service/schedule_service.dart';
 import '../../service/auth_service.dart';
 import '../../utils/message_utils.dart';
+import '../../utils/image_normalizer.dart';
 import 'confirm_schedule_page.dart';
 import '../login_page.dart';
 import '../home_page.dart';
@@ -75,7 +76,11 @@ class _SharedImageHandlerState extends State<SharedImageHandler> {
     for (int i = 0; i < paths.length; i++) {
       setState(() { _statusMessage = '识别中 (${i + 1}/${paths.length})'; _progress = (i + 0.5) / paths.length; });
       try {
-        final ocr = await _textRecognizer.processImage(InputImage.fromFilePath(paths[i]));
+        final jpegPath = await ImageNormalizer.toJpeg(paths[i]);
+        if (jpegPath == null) continue; // 无法识别的图片，跳过（避免原生崩溃）
+        final ocr = await _textRecognizer
+            .processImage(InputImage.fromFilePath(jpegPath))
+            .timeout(const Duration(seconds: 20));
         if (ocr.text.isEmpty) continue;
         final results = await ScheduleService().parseNotification(ocr.text);
         for (final r in results) {
