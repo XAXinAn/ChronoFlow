@@ -137,3 +137,58 @@ flutter build apk --release      # 签名 APK → build/app/outputs/flutter-apk/
 scp build/app/outputs/flutter-apk/app-release.apk chronoflow:/app/static/app.apk
 ssh chronoflow "sed -i 's/APP_VERSION_CODE=.*/APP_VERSION_CODE=<新版本号>/' /app/start.sh && /app/start.sh重启"
 ```
+
+---
+
+## 连接本地后端调试（重要）
+
+> 默认 `baseUrl` 现在是生产服务器 `https://chronocloud.top/api`（见 `frontend/lib/constants/app_constants.dart`）。
+> 也就是说，直接 `flutter run` 连的是**线上后端**，不是你本机起的那个。
+> 想连本地后端调试，必须用 `--dart-define=BASE_URL=...` 在启动时覆盖。
+
+前置条件：本地后端已按上面「后端运行」启动，监听在 `localhost:8080`。
+
+### iOS 模拟器 / iOS 真机走 USB
+
+iOS 模拟器和宿主机共享网络，直接用 `localhost`：
+
+```bash
+cd frontend
+flutter run --dart-define=BASE_URL=http://localhost:8080/api
+```
+
+### Android 模拟器
+
+Android 模拟器里 `localhost` 指模拟器自己，访问宿主机要用 `10.0.2.2`：
+
+```bash
+flutter run --dart-define=BASE_URL=http://10.0.2.2:8080/api
+```
+
+### 真机（iOS / Android）
+
+真机访问不到电脑的 `localhost`，要用电脑的局域网 IP，且手机与电脑在同一 WiFi：
+
+```bash
+# 先查电脑 IP
+# macOS: ipconfig getifaddr en0
+# Windows: ipconfig
+
+flutter run --dart-define=BASE_URL=http://192.168.x.x:8080/api
+```
+
+把 `192.168.x.x` 换成实际 IP。
+
+> ⚠️ iOS HTTP 明文限制：当前 `ios/Runner/Info.plist` **未配置 ATS 例外**，iOS 默认禁止 HTTP 明文请求。
+> 因此 iOS（模拟器或真机）连本地 `http://...` 后端会被 App Transport Security 拦截、请求失败。
+> 临时调试可在 `ios/Runner/Info.plist` 加入以下例外（**仅本地调试用，勿提交到生产**）：
+>
+> ```xml
+> <key>NSAppTransportSecurity</key>
+> <dict>
+>   <key>NSAllowsLocalNetworking</key>
+>   <true/>
+> </dict>
+> ```
+>
+> 线上 `chronocloud.top` 是 HTTPS，不受此限制，正式构建无需加这个例外。
