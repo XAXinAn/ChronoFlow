@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../model/auth_model.dart';
@@ -98,7 +99,25 @@ class ApiClient {
                     child: TextButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        // 跳转到登录页
+                        // 退出到登录页
+                        navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: Color(0xFFDDDDDD)),
+                        ),
+                      ),
+                      child: const Text('取消', style: TextStyle(color: Color(0xFF666666), fontSize: 15)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // 重新登录
                         navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
                       },
                       style: TextButton.styleFrom(
@@ -161,6 +180,12 @@ class ApiClient {
       final refreshed = await _refreshTokenWithMutex();
       if (refreshed) {
         response = await request(await _getAuthHeaders());
+        // If still 401 after refresh, force re-login
+        if (response.statusCode == 401) {
+          await clearAuth();
+          await showSessionExpiredDialog();
+          throw Exception('登录已过期，请重新登录');
+        }
       } else {
         await clearAuth();
         await showSessionExpiredDialog();
@@ -220,9 +245,27 @@ class ApiClient {
         return true;
       }
       return false;
+    } on SocketException catch (e) {
+      // Network unreachable — preserve existing tokens, throw for caller to retry
+      throw Exception('网络连接失败，请检查网络后重试');
+    } on TimeoutException catch (e) {
+      throw Exception('请求超时，请稍后重试');
     } catch (e) {
+      // Other errors — clear auth state
+      await clearAuth();
+      await showSessionExpiredDialog();
       return false;
     }
+  }
+
+  /// 无需认证的 POST 请求（用于登录、注册等公开端点）
+  static Future<http.Response> postPublic(String path, {Map<String, dynamic>? body}) async {
+    final url = '$baseUrl$path';
+    return await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: body != null ? json.encode(body) : null,
+    ).timeout(_timeout);
   }
 
   /// 通用 GET 请求

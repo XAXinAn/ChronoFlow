@@ -64,7 +64,9 @@ class _HomePageState extends State<HomePage> {
       final count = joins.where((j) => j.status == 'pending').length +
           subs.where((s) => s['status'] == 'pending').length;
       if (mounted) setState(() => _pendingNotificationCount = count);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('_loadNotificationCount failed: $e');
+    }
   }
 
   @override

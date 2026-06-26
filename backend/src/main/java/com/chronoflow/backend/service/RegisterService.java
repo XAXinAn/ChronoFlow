@@ -39,7 +39,7 @@ public class RegisterService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${crypto.secret:${jwt.secret:default-crypto-key-32chars}}")
+    @Value("${crypto.secret}")
     private String cryptoSecret;
 
     private static final String PENDING_REG_KEY_PREFIX = "reg:pending:";

@@ -112,7 +112,7 @@ class MyApp extends StatelessWidget {
           case '/register':
             return MaterialPageRoute(builder: (_) => const RegisterPage());
           case '/home':
-            final loginResponse = settings.arguments as LoginResponse?;
+            final loginResponse = settings.arguments as LoginResponse? ?? AuthService.currentUser;
             if (loginResponse == null) {
               return MaterialPageRoute(builder: (_) => const LoginPage());
             }

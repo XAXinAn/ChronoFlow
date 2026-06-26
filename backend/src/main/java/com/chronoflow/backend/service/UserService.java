@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.chronoflow.backend.entity.GroupMember;
 import com.chronoflow.backend.entity.User;
 import com.chronoflow.backend.mapper.GroupMemberMapper;
+import com.chronoflow.backend.mapper.JoinRequestMapper;
+import com.chronoflow.backend.mapper.SubgroupCreationRequestMapper;
 import com.chronoflow.backend.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,6 +27,8 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final ContentModerationService contentModerationService;
     private final GroupMemberMapper groupMemberMapper;
+    private final JoinRequestMapper joinRequestMapper;
+    private final SubgroupCreationRequestMapper subgroupCreationRequestMapper;
     private final com.chronoflow.backend.mapper.GroupMapper groupMapper;
 
     @Override
@@ -90,7 +94,8 @@ public class UserService implements UserDetailsService {
         // Safety check: don't delete user if they own groups with other members
         java.util.List<com.chronoflow.backend.entity.Group> ownedGroups =
                 groupMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.Group>()
-                        .eq("creator_id", userId));
+                        .eq("creator_id", userId)
+                        .orderByDesc("depth")); // Sort by depth descending: deep children first
         for (com.chronoflow.backend.entity.Group g : ownedGroups) {
             long memberCount = groupMemberMapper.selectCount(
                     new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<GroupMember>()
@@ -110,11 +115,27 @@ public class UserService implements UserDetailsService {
             if (childCount > 0) {
                 throw new BusinessException("你创建的群组「" + g.getName() + "」下有 " + childCount + " 个子群组，请先逐个解散子群组后再注销");
             }
+            // Clean up group's member records and join requests
+            groupMemberMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<GroupMember>()
+                    .eq("group_id", g.getId()));
+            joinRequestMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.JoinRequest>()
+                    .eq("group_id", g.getId()));
+            subgroupCreationRequestMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.SubgroupCreationRequest>()
+                    .eq("parent_group_id", g.getId()));
             groupMapper.deleteById(g.getId());
         }
+        // Clean up user's memberships in other groups
+        groupMemberMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<GroupMember>()
+                .eq("user_id", userId));
+        // Clean up user's pending join requests and subgroup requests
+        joinRequestMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.JoinRequest>()
+                .eq("user_id", userId));
+        subgroupCreationRequestMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.chronoflow.backend.entity.SubgroupCreationRequest>()
+                .eq("applicant_id", userId));
         userMapper.deleteById(userId);
     }
 
+    @Transactional
     public void bindEmail(Long userId, String email) {
         // Check uniqueness: email must not be used by another user
         User existingByEmail = userMapper.selectOne(
@@ -175,6 +196,7 @@ public class UserService implements UserDetailsService {
         groupMemberMapper.update(updateMember, wrapper);
     }
 
+    @Transactional
     public void bindPhone(Long userId, String phone) {
         // Check uniqueness: phone must not be used by another user
         User existingByPhone = userMapper.selectOne(

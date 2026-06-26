@@ -28,9 +28,10 @@ class MessageUtils {
 
   /// 显示错误提示，自动去掉 "Exception: " 前缀。
   static void showError(BuildContext context, Object e) {
+    const prefix = 'Exception: ';
     String msg = e.toString();
-    if (msg.startsWith('Exception: ')) {
-      msg = msg.substring(11);
+    if (msg.startsWith(prefix)) {
+      msg = msg.substring(prefix.length);
     }
     show(context, msg);
   }

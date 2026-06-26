@@ -1,4 +1,5 @@
 import '../widgets/chrono_input_field.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../service/auth_service.dart';
 import '../utils/message_utils.dart';
@@ -30,6 +31,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool _smsCodeFocused = false;
   bool _isSendingSms = false;
   int _smsCountdown = 0;
+  Timer? _smsTimer;
 
   // 邮箱登录
   final _emailController = TextEditingController();
@@ -40,6 +42,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool _emailCodeFocused = false;
   bool _isSendingEmail = false;
   int _emailCountdown = 0;
+  Timer? _emailTimer;
 
   bool _isLoading = false;
   bool _privacyCheckedAccount = false;
@@ -60,6 +63,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   void dispose() {
+    _smsTimer?.cancel();
+    _emailTimer?.cancel();
     _tabController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -235,15 +240,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   void _startSmsCountdown() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
+    _smsTimer?.cancel();
+    _smsTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { timer.cancel(); return; }
       setState(() {
         if (_smsCountdown > 0) {
           _smsCountdown--;
+        } else {
+          timer.cancel();
         }
       });
-      return _smsCountdown > 0;
     });
   }
 
@@ -318,15 +324,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   void _startEmailCountdown() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
+    _emailTimer?.cancel();
+    _emailTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) { timer.cancel(); return; }
       setState(() {
         if (_emailCountdown > 0) {
           _emailCountdown--;
+        } else {
+          timer.cancel();
         }
       });
-      return _emailCountdown > 0;
     });
   }
 

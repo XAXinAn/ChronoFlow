@@ -340,7 +340,10 @@ class _SplashPageState extends State<SplashPage> {
       ).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final serverVersionCode = (data['versionCode'] as num?)?.toInt() ?? 1;
+        final versionCodeRaw = data['versionCode'];
+        final serverVersionCode = versionCodeRaw is int
+            ? versionCodeRaw
+            : (versionCodeRaw is String ? int.tryParse(versionCodeRaw) : null) ?? 1;
         if (serverVersionCode > _currentVersionCode) {
           _updateDownloadUrl = data['downloadUrl'] as String? ?? '';
           _newVersion = data['version'] as String? ?? '';

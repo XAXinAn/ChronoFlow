@@ -159,11 +159,14 @@ public class GroupService {
             throw new BusinessException("群主无法退出群组，请先解散群组");
         }
 
-        groupMemberMapper.delete(
+        int deleted = groupMemberMapper.delete(
                 new QueryWrapper<GroupMember>()
                         .eq("group_id", groupId)
                         .eq("user_id", userId)
         );
+        if (deleted == 0) {
+            throw new BusinessException("你不是该群组成员");
+        }
     }
 
     @Transactional
@@ -316,6 +319,7 @@ public class GroupService {
     /**
      * Update group name. Only the group creator can rename.
      */
+    @Transactional
     public void updateGroupName(Long userId, String groupId, String newName) {
         Group group = groupMapper.selectById(groupId);
         if (group == null) {
@@ -373,6 +377,15 @@ public class GroupService {
         if (oldCreator != null) {
             oldCreator.setIsAdmin(false);
             groupMemberMapper.updateById(oldCreator);
+        } else {
+            // Ensure old creator retains at least a regular member record
+            GroupMember fallbackMember = new GroupMember();
+            fallbackMember.setGroupId(groupId);
+            fallbackMember.setUserId(currentCreatorId);
+            fallbackMember.setNickname(getUserNickname(currentCreatorId));
+            fallbackMember.setIsAdmin(false);
+            fallbackMember.setJoinedAt(LocalDateTime.now());
+            groupMemberMapper.insert(fallbackMember);
         }
 
         // Make new creator an admin
@@ -781,26 +794,58 @@ public class GroupService {
      * Get all descendant group IDs (including self) for schedule publishing.
      */
     /**
-     * Get direct children of a group.
+     * Get direct children of a group with batch-loaded member counts.
      */
     public List<GroupResponse> getDirectChildren(String parentGroupId) {
         List<Group> children = groupMapper.selectList(
                 new QueryWrapper<Group>().eq("parent_id", parentGroupId));
+
+        if (children.isEmpty()) return List.of();
+
+        // Batch load member counts for all children
+        List<String> childIds = children.stream().map(Group::getId).collect(Collectors.toList());
+        java.util.Map<String, Integer> memberCountMap = new java.util.HashMap<>();
+        List<GroupMember> allMembers = groupMemberMapper.selectList(
+                new QueryWrapper<GroupMember>().in("group_id", childIds));
+        for (GroupMember m : allMembers) {
+            memberCountMap.merge(m.getGroupId(), 1, Integer::sum);
+        }
+        // Batch check which children have children
+        java.util.Set<String> groupsWithChildren = new java.util.HashSet<>();
+        java.util.Map<String, Integer> descendantCountMap = new java.util.HashMap<>();
+        List<Group> allDescendants = groupMapper.selectList(null); // single full-table scan
+        java.util.Map<String, List<String>> parentToChildren = new java.util.HashMap<>();
+        for (Group g : allDescendants) {
+            if (g.getParentId() != null) {
+                parentToChildren.computeIfAbsent(g.getParentId(), k -> new java.util.ArrayList<>()).add(g.getId());
+            }
+        }
+        for (String childId : childIds) {
+            if (parentToChildren.containsKey(childId)) {
+                groupsWithChildren.add(childId);
+                descendantCountMap.put(childId, countAllDescendants(childId, parentToChildren));
+            }
+        }
+
         return children.stream()
                 .map(g -> {
-                    int memberCount = groupMemberMapper.selectCount(
-                            new QueryWrapper<GroupMember>().eq("group_id", g.getId())).intValue();
-                    boolean hasChild = groupMapper.selectCount(
-                            new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
-                    int descendantCount = 0;
-                    if (hasChild) {
-                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1;
-                    }
+                    int memberCount = memberCountMap.getOrDefault(g.getId(), 0);
+                    boolean hasChild = groupsWithChildren.contains(g.getId());
+                    int descendantCount = descendantCountMap.getOrDefault(g.getId(), 0);
                     GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
                     resp.setDescendantCount(descendantCount);
                     return resp;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private int countAllDescendants(String groupId, java.util.Map<String, List<String>> parentToChildren) {
+        int count = 0;
+        List<String> children = parentToChildren.getOrDefault(groupId, List.of());
+        for (String child : children) {
+            count += 1 + countAllDescendants(child, parentToChildren);
+        }
+        return count;
     }
 
     /**
@@ -810,29 +855,55 @@ public class GroupService {
     public List<GroupResponse> getDescendantTree(String groupId) {
         List<Group> allDescendants = new java.util.ArrayList<>();
         collectDescendants(groupId, allDescendants);
+
+        if (allDescendants.isEmpty()) return List.of();
+
+        // Batch load member counts
+        List<String> descendantIds = allDescendants.stream().map(Group::getId).collect(Collectors.toList());
+        descendantIds.add(groupId);
+        java.util.Map<String, Integer> memberCountMap = new java.util.HashMap<>();
+        List<GroupMember> allMembers = groupMemberMapper.selectList(
+                new QueryWrapper<GroupMember>().in("group_id", descendantIds));
+        for (GroupMember m : allMembers) {
+            memberCountMap.merge(m.getGroupId(), 1, Integer::sum);
+        }
+        // Build child lookup
+        java.util.Set<String> groupsWithChildren = new java.util.HashSet<>();
+        List<Group> allGroups = groupMapper.selectList(null);
+        for (Group g : allGroups) {
+            if (g.getParentId() != null) {
+                groupsWithChildren.add(g.getParentId());
+            }
+        }
+
         return allDescendants.stream()
                 .map(g -> {
-                    int memberCount = groupMemberMapper.selectCount(
-                            new QueryWrapper<GroupMember>().eq("group_id", g.getId())).intValue();
-                    boolean hasChild = groupMapper.selectCount(
-                            new QueryWrapper<Group>().eq("parent_id", g.getId())) > 0;
-                    int descendantCount = 0;
-                    if (hasChild) {
-                        descendantCount = getDescendantGroupIds(g.getId()).size() - 1;
-                    }
+                    int memberCount = memberCountMap.getOrDefault(g.getId(), 0);
+                    boolean hasChild = groupsWithChildren.contains(g.getId());
                     GroupResponse resp = toResponse(g, memberCount, null, null, hasChild);
-                    resp.setDescendantCount(descendantCount);
                     return resp;
                 })
                 .collect(Collectors.toList());
     }
 
     private void collectDescendants(String parentId, List<Group> result) {
-        List<Group> children = groupMapper.selectList(
-                new QueryWrapper<Group>().eq("parent_id", parentId));
+        // Single batch load all groups and build in-memory index
+        List<Group> allGroups = groupMapper.selectList(null);
+        java.util.Map<String, List<Group>> parentToChildren = new java.util.HashMap<>();
+        for (Group g : allGroups) {
+            if (g.getParentId() != null) {
+                parentToChildren.computeIfAbsent(g.getParentId(), k -> new java.util.ArrayList<>()).add(g);
+            }
+        }
+        collectDescendantsFromIndex(parentId, result, parentToChildren);
+    }
+
+    private void collectDescendantsFromIndex(String parentId, List<Group> result,
+                                              java.util.Map<String, List<Group>> parentToChildren) {
+        List<Group> children = parentToChildren.getOrDefault(parentId, List.of());
         for (Group child : children) {
             result.add(child);
-            collectDescendants(child.getId(), result);
+            collectDescendantsFromIndex(child.getId(), result, parentToChildren);
         }
     }
 
@@ -844,11 +915,23 @@ public class GroupService {
     }
 
     private void collectDescendantIds(String parentId, List<String> result) {
-        List<Group> children = groupMapper.selectList(
-                new QueryWrapper<Group>().eq("parent_id", parentId));
+        // Single batch load and build in-memory index
+        List<Group> allGroups = groupMapper.selectList(null);
+        java.util.Map<String, List<Group>> parentToChildren = new java.util.HashMap<>();
+        for (Group g : allGroups) {
+            if (g.getParentId() != null) {
+                parentToChildren.computeIfAbsent(g.getParentId(), k -> new java.util.ArrayList<>()).add(g);
+            }
+        }
+        collectDescendantIdsFromIndex(parentId, result, parentToChildren);
+    }
+
+    private void collectDescendantIdsFromIndex(String parentId, List<String> result,
+                                                java.util.Map<String, List<Group>> parentToChildren) {
+        List<Group> children = parentToChildren.getOrDefault(parentId, List.of());
         for (Group child : children) {
             result.add(child.getId());
-            collectDescendantIds(child.getId(), result);
+            collectDescendantIdsFromIndex(child.getId(), result, parentToChildren);
         }
     }
 
@@ -856,11 +939,17 @@ public class GroupService {
      * Get ancestor group IDs up to root (for schedule visibility).
      */
     public List<String> getAncestorGroupIds(String groupId) {
+        // Single batch load and build parent index
+        List<Group> allGroups = groupMapper.selectList(null);
+        java.util.Map<String, String> idToParent = new java.util.HashMap<>();
+        for (Group g : allGroups) {
+            idToParent.put(g.getId(), g.getParentId());
+        }
         List<String> result = new java.util.ArrayList<>();
-        Group current = groupMapper.selectById(groupId);
-        while (current != null && current.getParentId() != null) {
-            result.add(current.getParentId());
-            current = groupMapper.selectById(current.getParentId());
+        String parentId = idToParent.get(groupId);
+        while (parentId != null) {
+            result.add(parentId);
+            parentId = idToParent.get(parentId);
         }
         return result;
     }

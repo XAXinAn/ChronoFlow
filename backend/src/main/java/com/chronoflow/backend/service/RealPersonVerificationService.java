@@ -115,6 +115,26 @@ public class RealPersonVerificationService {
     }
 
     /**
+     * InitFaceVerify with retry logic for transient network errors.
+     */
+    public String initFaceVerifyWithRetry(String metaInfo, String realName, String idCardNumber, Long userId) {
+        Exception lastException = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                return initFaceVerify(metaInfo, realName, idCardNumber, userId);
+            } catch (BusinessException e) {
+                if (attempt < 2 && e.getMessage().contains("暂时不可用")) {
+                    try { Thread.sleep((long) (500 * Math.pow(2, attempt))); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                    lastException = e;
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw new BusinessException("实人认证服务暂时不可用（已重试3次），请稍后重试");
+    }
+
+    /**
      * Call Alibaba Cloud DescribeFaceVerify to get the verification result.
      */
     public RealPersonVerifyResultResponse describeFaceVerify(String certifyId, Long userId) {
@@ -178,6 +198,26 @@ public class RealPersonVerificationService {
             log.error("DescribeFaceVerify error: {}", e.getMessage());
             throw new BusinessException("查询认证结果失败，请稍后重试");
         }
+    }
+
+    /**
+     * DescribeFaceVerify with retry logic for transient network errors.
+     */
+    public RealPersonVerifyResultResponse describeFaceVerifyWithRetry(String certifyId, Long userId) {
+        Exception lastException = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                return describeFaceVerify(certifyId, userId);
+            } catch (BusinessException e) {
+                if (attempt < 2 && e.getMessage().contains("暂时不可用")) {
+                    try { Thread.sleep((long) (500 * Math.pow(2, attempt))); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                    lastException = e;
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw new BusinessException("查询认证结果失败（已重试3次），请稍后重试");
     }
 
     private DefaultAcsClient getClient() {

@@ -149,9 +149,19 @@ class _RegisterPageState extends State<RegisterPage> {
       String metaInfo;
       try {
         metaInfo = await _getMetaInfo();
-        if (metaInfo.isEmpty) metaInfo = '{}';
+        if (metaInfo.isEmpty) {
+          if (kDebugMode) {
+            metaInfo = '{}';
+          } else {
+            throw Exception('获取认证信息失败');
+          }
+        }
       } catch (e) {
-        metaInfo = '{}'; // fallback for dev: non-blank dummy so backend validation passes
+        if (kDebugMode) {
+          metaInfo = '{}';
+        } else {
+          rethrow;
+        }
       }
 
       // Step 2: Send registration data to backend, get certifyId

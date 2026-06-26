@@ -34,6 +34,9 @@ public class ContentModerationService {
     @Value("${aliyun.green.endpoint:green-cs.cn-shanghai.aliyuncs.com}")
     private String endpoint;
 
+    @Value("${aliyun.green.fail-open:false}")
+    private boolean failOpen;
+
     private volatile Client client;
     private volatile boolean configured = false;
 
@@ -109,12 +112,27 @@ public class ContentModerationService {
         } catch (ContentModerationException e) {
             throw e;
         } catch (Exception e) {
+            if (failOpen) {
+                log.warn("Content moderation service unavailable, fail-open: allowing content. Error: {}", e.getMessage());
+                return null;
+            }
             log.error("Content moderation service unavailable, blocking content: {}", e.getMessage());
             throw new BusinessException("内容审核服务暂时不可用，请稍后重试");
         }
     }
 
     private String buildReason(List<TextModerationPlusResponseBody.TextModerationPlusResponseBodyDataResult> results) {
-        return "输入内容包含不当信息，请修改后重试";
+        if (results == null || results.isEmpty()) {
+            return "输入内容包含不当信息，请修改后重试";
+        }
+        StringBuilder sb = new StringBuilder("内容包含不当信息");
+        for (int i = 0; i < Math.min(results.size(), 3); i++) {
+            var r = results.get(i);
+            if (r.getLabel() != null && !r.getLabel().isEmpty()) {
+                sb.append("（").append(r.getLabel()).append("）");
+            }
+        }
+        sb.append("，请修改后重试");
+        return sb.toString();
     }
 }

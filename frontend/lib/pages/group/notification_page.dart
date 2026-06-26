@@ -16,6 +16,7 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   final GroupService _groupService = GroupService();
   bool _isLoading = true;
+  bool _hasError = false;
   List<_NotificationItem> _items = [];
 
   @override
@@ -25,7 +26,7 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _hasError = false; });
     final items = <_NotificationItem>[];
 
     try {
@@ -40,7 +41,9 @@ class _NotificationPageState extends State<NotificationPage> {
           time: r.createdAt,
         ));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('_load joinRequests failed: $e');
+    }
 
     try {
       final subgroupRequests = await _groupService.getMySubgroupRequests();
@@ -59,7 +62,9 @@ class _NotificationPageState extends State<NotificationPage> {
           time: DateTime.tryParse(createdAt) ?? DateTime.now(),
         ));
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('_load subgroupRequests failed: $e');
+    }
 
     // 最新在前
     items.sort((a, b) => b.time.compareTo(a.time));

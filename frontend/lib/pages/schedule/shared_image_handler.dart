@@ -103,13 +103,17 @@ class _SharedImageHandlerState extends State<SharedImageHandler> {
       return;
     }
 
-    Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)))
-        .then((_) {
-      if (mounted) {
-        final user = AuthService.currentUser;
-        if (user != null) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(loginResponse: user)));
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)));
+    if (!mounted) return;
+    if (result != null && result is List && result.isNotEmpty) {
+      final user = AuthService.currentUser;
+      if (user != null) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(loginResponse: user)));
       }
-    });
+    } else {
+      MessageUtils.show(context, '保存失败，请重试');
+    }
   }
 
   void _showLoginRequiredDialog() {

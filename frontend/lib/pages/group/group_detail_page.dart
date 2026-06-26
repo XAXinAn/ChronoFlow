@@ -59,7 +59,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         _pendingJoinCount = joins.where((j) => j.status == 'pending').length;
         _pendingSubgroupCount = subs.length;
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('_loadPendingCounts failed: $e');
+    }
   }
 
   Future<void> _loadChildren() async {
@@ -74,7 +76,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         return a.name.compareTo(b.name);
       });
       if (mounted) setState(() => _children = children);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('_loadChildren failed: $e');
+    }
   }
 
   Future<void> _requestSubgroup() async {
