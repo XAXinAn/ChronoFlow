@@ -248,8 +248,6 @@ class ApiClient {
     } on SocketException catch (e) {
       // Network unreachable — preserve existing tokens, throw for caller to retry
       throw Exception('网络连接失败，请检查网络后重试');
-    } on TimeoutException catch (e) {
-      throw Exception('请求超时，请稍后重试');
     } catch (e) {
       // Other errors — clear auth state
       await clearAuth();
