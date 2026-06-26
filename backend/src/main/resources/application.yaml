@@ -4,6 +4,10 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -63,3 +67,5 @@ aliyun:
     access-key-secret: ${ALIYUN_CLOUDAUTH_ACCESS_KEY_SECRET:}
     endpoint: ${ALIYUN_CLOUDAUTH_ENDPOINT:cloudauth.cn-shanghai.aliyuncs.com}
     scene-id: ${ALIYUN_CLOUDAUTH_SCENE_ID:}
+
+

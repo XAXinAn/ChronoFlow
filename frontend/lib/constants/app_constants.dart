@@ -57,4 +57,17 @@ class AppConstants {
 
   // 边框高度
   static const double borderWidth = 0.5;
+
+  
+  static String fullUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
+    String p = path;
+    if (p.startsWith('/api/')) {
+      p = p.substring(4); // 去掉 "/api"，保留 "/feedback/image/xxx.jpg"
+    }
+    return '$baseUrl$p';
+  }
 }

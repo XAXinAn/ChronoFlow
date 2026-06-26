@@ -213,6 +213,7 @@ class ApiClient {
             phone: _currentUser!.phone,
             realNameVerified: _currentUser!.realNameVerified,
             realName: _currentUser!.realName,
+            role: _currentUser!.role,
           );
           await _storage.saveUser(merged);
           setUser(merged);

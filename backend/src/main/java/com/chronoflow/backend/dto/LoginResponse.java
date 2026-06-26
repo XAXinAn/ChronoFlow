@@ -25,4 +25,6 @@ public class LoginResponse {
     // 实人认证
     private Boolean realNameVerified;
     private String realName;
+    // 角色
+    private String role;
 }

@@ -1075,6 +1075,7 @@ MessageUtils.show(context, '搜索失败: $e');
             }),
             _buildProfileItem(Icons.qr_code_scanner, '扫一扫', onTap: _openQrScanner),
             _buildProfileItem(Icons.info_outline, '关于', onTap: () => Navigator.pushNamed(context, '/about')),
+            _buildProfileItem(Icons.feedback_outlined, '意见反馈', onTap: () => Navigator.pushNamed(context, '/feedback')),
             const SizedBox(height: 24),
             _buildProfileItem(Icons.logout, '退出登录', onTap: () => _showLogoutDialog()),
             _buildProfileItem(Icons.delete_forever, '注销账号', onTap: () => _showDeleteAccountDialog()),
