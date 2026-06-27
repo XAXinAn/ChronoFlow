@@ -23,7 +23,7 @@ android {
         }
     }
     namespace = "com.chronoflow.frontend"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

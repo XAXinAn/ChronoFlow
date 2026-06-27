@@ -320,7 +320,7 @@ class _SplashPageState extends State<SplashPage> {
     );
   }
 
-  static const int _currentVersionCode = 2;
+  static const int _currentVersionCode = 3;
   String _newVersion = '';
   String _updateDownloadUrl = '';
 

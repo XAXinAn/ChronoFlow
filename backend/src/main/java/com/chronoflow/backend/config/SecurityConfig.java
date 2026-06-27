@@ -62,7 +62,7 @@ public class SecurityConfig {
                                 "/api/admin/login",
                                 "/api/app/version",
                                 "/admin/**",
-                                "/ChronoFlow-v1.0.1.apk",
+                                "/ChronoFlow-v1.1.0.apk",
                                 "/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .anyRequest().authenticated()
