@@ -35,3 +35,4 @@ frontend/android/app/chronoflow.keystore
 # ===== 发布/备份 =====
 release/
 db_backup/
+uploads/
