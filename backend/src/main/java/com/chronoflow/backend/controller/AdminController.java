@@ -44,11 +44,13 @@ public class AdminController {
             throw new BusinessException("用户名或密码错误");
         }
 
-        // 生成 JWT（用 admin 的 id 作为 userId，username 作为 subject）
-        String accessToken = jwtTokenProvider.generateAccessToken(Map.of(), admin.getId(),
+        // 生成 JWT（带 admin 标记，过滤器跳过 users 表查询）
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                Map.of("admin", true), admin.getId(),
                 org.springframework.security.core.userdetails.User.builder()
                         .username(username).password("").authorities("ROLE_USER").build());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(Map.of(), admin.getId(),
+        String refreshToken = jwtTokenProvider.generateRefreshToken(
+                Map.of("admin", true), admin.getId(),
                 org.springframework.security.core.userdetails.User.builder()
                         .username(username).password("").authorities("ROLE_USER").build());
 
