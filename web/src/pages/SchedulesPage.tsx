@@ -5,18 +5,19 @@ import Pagination from '../components/Pagination';
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [page, setPage] = useState(1);
+  const [size, setSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [keyword, setKeyword] = useState('');
 
   const load = useCallback(async (p = 1) => {
     try {
-      const res = await api.get('/admin/schedules', { params: { page: p, size: 20, keyword: keyword || undefined } });
+      const res = await api.get('/admin/schedules', { params: { page: p, size, keyword: keyword || undefined } });
       const d = res.data.data || res.data;
       setSchedules(d.records || []);
       setTotal(d.total || 0);
       setPage(p);
     } catch {}
-  }, [keyword]);
+  }, [keyword, size]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -41,7 +42,7 @@ export default function SchedulesPage() {
           </tr>
         ))}</tbody>
       </table>
-      <Pagination page={page} total={total} size={20} onChange={load} />
+      <Pagination page={page} total={total} size={size} onChange={load} onSizeChange={s => setSize(s)} />
     </div>
   );
 }

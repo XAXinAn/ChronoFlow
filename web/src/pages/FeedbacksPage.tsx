@@ -8,6 +8,7 @@ import type { Feedback } from '../types/feedback';
 export default function FeedbacksPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [page, setPage] = useState(1);
+  const [size, setSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ export default function FeedbacksPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/admin/feedbacks', { params: { page: p, size: 20, status: status || undefined, type: type || undefined, keyword: keyword || undefined } });
+      const res = await api.get('/admin/feedbacks', { params: { page: p, size, status: status || undefined, type: type || undefined, keyword: keyword || undefined } });
       const d = res.data.data || res.data;
       setFeedbacks(d.records || []);
       setTotal(d.total || 0);
@@ -32,7 +33,7 @@ export default function FeedbacksPage() {
     }
   };
 
-  useEffect(() => { load(); }, [status, type, keyword]);
+  useEffect(() => { load(); }, [status, type, keyword, size]);
 
   if (loading) return <p style={{ color: '#999', textAlign: 'center', padding: 40 }}>加载中...</p>;
   if (error) return <p style={{ color: '#e74c3c', textAlign: 'center', padding: 40 }}>{error} <button onClick={() => load()} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#2980b9' }}>重试</button></p>;
@@ -78,7 +79,7 @@ export default function FeedbacksPage() {
           </div>
         ))
       )}
-      <Pagination page={page} total={total} size={20} onChange={load} />
+      <Pagination page={page} total={total} size={size} onChange={load} onSizeChange={s => setSize(s)} />
     </div>
   );
 }
