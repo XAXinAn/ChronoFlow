@@ -11,6 +11,7 @@ import com.chronoflow.backend.util.CryptoUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,12 +22,12 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Two-step registration with mandatory real-person verification.
- *
  * Step 1: initRegistration — validates all reg fields, initiates face verification,
  *          stores pending data in Redis, returns certifyId.
  * Step 2: confirmRegistration — verifies face result, checks real-name uniqueness,
  *          creates user account with realNameVerified=true.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegisterService {

@@ -271,6 +271,7 @@ class AuthService {
       phone: data['phone'] ?? '',
       realNameVerified: data['realNameVerified'] ?? ApiClient.currentUser?.realNameVerified ?? false,
       realName: data['realName'] ?? ApiClient.currentUser?.realName,
+      role: data['role'] ?? ApiClient.currentUser?.role,
     );
     await _storage.saveUser(loginResponse);
     ApiClient.setUser(loginResponse);

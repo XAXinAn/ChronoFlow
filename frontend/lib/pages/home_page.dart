@@ -126,45 +126,6 @@ MessageUtils.show(context, '搜索失败: $e');
     _loadSchedules();
   }
 
-  void _showCameraOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.black),
-              title: const Text('拍照', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: Colors.black),
-              title: const Text('从相册选择', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageFromGallery();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectGroupForCamera() async {
-    final group = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SelectGroupPage()),
-    );
-    if (group != null && mounted) {
-      _openCamera(isGroup: true, groupId: group.id, groupName: group.name);
-    }
-  }
-
   Future<void> _openCamera({bool isGroup = false, String? groupId, String? groupName}) async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -181,50 +142,6 @@ MessageUtils.show(context, '搜索失败: $e');
         MessageUtils.show(context, '打开相机失败: $e');
       }
     }
-  }
-
-  Future<void> _openGallery() async {
-    final group = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SelectGroupPage()),
-    );
-    if (group != null && mounted) {
-      _showGallerySourceSelection(group.id, group.name);
-    }
-  }
-
-  void _showGallerySourceSelection(String groupId, String groupName) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.black),
-              title: const Text('个人日程', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageFromGallery(isGroup: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group, color: Colors.blue),
-              title: Text('群组: $groupName', style: const TextStyle(color: Colors.blue)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageFromGallery(isGroup: true, groupId: groupId, groupName: groupName);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.close, color: Colors.grey),
-              title: const Text('取消', style: TextStyle(color: Colors.grey)),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickImageFromGallery({bool isGroup = false, String? groupId, String? groupName}) async {
@@ -396,35 +313,6 @@ MessageUtils.show(context, '搜索失败: $e');
       });
       MessageUtils.show(context, '解析失败: $e');
     }
-  }
-
-  void _showAddScheduleOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.black),
-              title: const Text('个人日程', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _addPersonalSchedule();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group, color: Colors.blue),
-              title: const Text('群组日程', style: TextStyle(color: Colors.blue)),
-              onTap: () {
-                Navigator.pop(context);
-                _addGroupSchedule();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _addPersonalSchedule() async {
@@ -902,40 +790,6 @@ MessageUtils.show(context, '搜索失败: $e');
     return const GroupPage();
   }
 
-  Widget _buildDiscoverItem(IconData icon, String label, {VoidCallback? onTap}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap ?? () {},
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 22, color: Colors.black54),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 20, color: Colors.black26),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildProfileContent() {
     final email = AuthService.currentUser?.email;
     final hasEmail = email != null && email.isNotEmpty;
@@ -1094,6 +948,7 @@ MessageUtils.show(context, '搜索失败: $e');
             }),
             _buildProfileItem(Icons.qr_code_scanner, '扫一扫', onTap: _openQrScanner),
             _buildProfileItem(Icons.info_outline, '关于', onTap: () => Navigator.pushNamed(context, '/about')),
+            _buildProfileItem(Icons.feedback_outlined, '意见反馈', onTap: () => Navigator.pushNamed(context, '/feedback')),
             const SizedBox(height: 24),
             _buildProfileItem(Icons.logout, '退出登录', onTap: () => _showLogoutDialog()),
             _buildProfileItem(Icons.delete_forever, '注销账号', onTap: () => _showDeleteAccountDialog()),

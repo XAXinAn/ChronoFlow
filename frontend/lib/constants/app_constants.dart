@@ -57,4 +57,12 @@ class AppConstants {
 
   // 边框高度
   static const double borderWidth = 0.5;
+
+  
+  static String fullUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    return Uri.parse(baseUrl).resolve(path).toString();
+  }
 }

@@ -116,3 +116,31 @@ CREATE TABLE IF NOT EXISTS schedule_publish_targets (
     CONSTRAINT fk_pub_schedule FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
     CONSTRAINT fk_pub_group FOREIGN KEY (target_group_id) REFERENCES `groups`(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 管理后台账号表（独立于用户表）
+CREATE TABLE IF NOT EXISTS admin_users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL COMMENT 'BCrypt加密',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 默认管理员账号 admin / admin123（首次部署后请修改密码）
+INSERT IGNORE INTO admin_users (username, password) VALUES ('admin', '$2b$10$EuNpQTArxa5iCqXJ5o7y.O49MvR23rQH07GrifbRYztAZhIb8y1NO');
+
+-- 用户反馈表
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    type VARCHAR(20) NOT NULL COMMENT '反馈类型: bug / suggestion / other',
+    content TEXT NOT NULL COMMENT '反馈正文 (10~500字)',
+    image_urls TEXT COMMENT '图片URL列表 (JSON数组)',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '处理状态: pending / processing / resolved / closed',
+    admin_reply TEXT COMMENT '管理员回复',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_user_created (user_id, created_at),
+    CONSTRAINT fk_feedback_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

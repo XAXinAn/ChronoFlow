@@ -61,7 +61,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            UserDetails userDetails = userService.loadUserByUsername(username);
+            // Admin tokens bypass users table lookup
+            Boolean isAdmin = jwtTokenProvider.extractClaim(jwt,
+                    claims -> claims.get("admin", Boolean.class));
+            UserDetails userDetails;
+            if (Boolean.TRUE.equals(isAdmin)) {
+                userDetails = org.springframework.security.core.userdetails.User.builder()
+                        .username(username).password("").authorities("ROLE_USER").build();
+            } else {
+                userDetails = userService.loadUserByUsername(username);
+            }
 
             if (jwtTokenProvider.isTokenValid(jwt, userDetails)) {
                 Long userId = jwtTokenProvider.extractUserId(jwt);

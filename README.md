@@ -91,7 +91,7 @@ flutter devices    # 查看可用设备
 **Android 模拟器**（默认连 `10.0.2.2:8080` 访问宿主机）：
 
 ```bash
-flutter run
+
 ```
 
 **iOS 模拟器**（需要改成 `localhost`）：
