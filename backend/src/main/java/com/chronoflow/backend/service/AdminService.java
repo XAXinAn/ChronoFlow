@@ -85,6 +85,15 @@ public class AdminService {
     }
 
     public PageResult<Map<String, Object>> listUsers(int page, int size, String keyword) {
+        // Count with a clean wrapper
+        QueryWrapper<User> countWrapper = new QueryWrapper<>();
+        if (keyword != null && !keyword.isBlank()) {
+            countWrapper.and(w -> w.like("username", keyword).or().like("nickname", keyword)
+                    .or().like("phone", keyword).or().like("email", keyword));
+        }
+        long total = userMapper.selectCount(countWrapper);
+
+        // Select with columns + limit
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         if (keyword != null && !keyword.isBlank()) {
             wrapper.and(w -> w.like("username", keyword).or().like("nickname", keyword)
@@ -93,8 +102,6 @@ public class AdminService {
         wrapper.orderByDesc("created_at");
         wrapper.select("id", "username", "nickname", "email", "phone",
                 "real_name_verified", "created_at");
-
-        long total = userMapper.selectCount(wrapper);
         wrapper.last("LIMIT " + ((page - 1) * size) + "," + size);
         List<User> userList = userMapper.selectList(wrapper);
 
