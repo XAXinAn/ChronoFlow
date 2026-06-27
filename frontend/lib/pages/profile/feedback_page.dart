@@ -127,12 +127,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('意见反馈', style: TextStyle(fontWeight: FontWeight.w300)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/feedback-history'),
-            child: const Text('历史', style: TextStyle(fontSize: 15)),
-          ),
-        ],
       ),
       body: Column(children: [
         Expanded(child: SingleChildScrollView(

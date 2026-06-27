@@ -1,9 +1,6 @@
 package com.chronoflow.backend.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chronoflow.backend.dto.FeedbackResponse;
-import com.chronoflow.backend.dto.PageResult;
 import com.chronoflow.backend.entity.Feedback;
 import com.chronoflow.backend.exception.BusinessException;
 import com.chronoflow.backend.exception.ContentModerationException;
@@ -119,22 +116,6 @@ public class FeedbackService {
         log.info("Feedback submitted: userId={}, feedbackId={}, type={}, images={}",
                 userId, feedback.getId(), type, imageUrls.size());
         return toResponse(feedback);
-    }
-
-    // ==================== 查询个人反馈列表（分页） ====================
-
-    public PageResult<FeedbackResponse> getMyFeedbacks(Long userId, int page, int size) {
-        QueryWrapper<Feedback> wrapper = new QueryWrapper<Feedback>()
-                .eq("user_id", userId)
-                .orderByDesc("created_at");
-
-        Page<Feedback> p = new Page<>(page, size);
-        Page<Feedback> result = feedbackMapper.selectPage(p, wrapper);
-
-        List<FeedbackResponse> records = result.getRecords().stream()
-                .map(this::toResponse)
-                .toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
     }
 
     // ==================== 查询单条反馈详情 ====================

@@ -14,7 +14,6 @@ import 'pages/profile/privacy_policy_page.dart';
 import 'pages/profile/user_agreement_page.dart';
 import 'pages/schedule/shared_image_handler.dart';
 import 'pages/profile/feedback_page.dart';
-import 'pages/profile/feedback_history_page.dart';
 import 'pages/profile/feedback_detail_page.dart';
 import 'model/auth_model.dart';
 import 'service/auth_service.dart';
@@ -139,10 +138,6 @@ class MyApp extends StatelessWidget {
           case '/feedback':
             return MaterialPageRoute(
               builder: (_) => const FeedbackPage(),
-            );
-          case '/feedback-history':
-            return MaterialPageRoute(
-              builder: (_) => const FeedbackHistoryPage(),
             );
           case '/feedback-detail':
             final feedbackResponse = settings.arguments;
