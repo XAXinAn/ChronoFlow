@@ -166,8 +166,7 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .role(user.getRole())
-                .riskRequired(false)
+                                .riskRequired(false)
                 .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
                 .realName(user.getRealName())
                 .build();
@@ -217,8 +216,7 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .role(user.getRole())
-                .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
+                                .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
                 .realName(user.getRealName())
                 .build();
     }

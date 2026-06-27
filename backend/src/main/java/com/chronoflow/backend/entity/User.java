@@ -56,10 +56,6 @@ public class User implements UserDetails {
     @TableField("password")
     private String password;
 
-    /** 用户角色：USER / ADMIN */
-    @TableField("role")
-    private String role;
-
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
@@ -68,13 +64,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        String roleName = "ADMIN".equals(this.role) ? "ROLE_ADMIN" : "ROLE_USER";
-        return List.of(new SimpleGrantedAuthority(roleName));
-    }
-
-    @JsonIgnore
-    public boolean isAdmin() {
-        return "ADMIN".equals(this.role);
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override

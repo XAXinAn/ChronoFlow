@@ -3,11 +3,16 @@ package com.chronoflow.backend.controller;
 import com.chronoflow.backend.dto.ApiResponse;
 import com.chronoflow.backend.dto.FeedbackResponse;
 import com.chronoflow.backend.dto.PageResult;
+import com.chronoflow.backend.entity.AdminUser;
+import com.chronoflow.backend.exception.BusinessException;
+import com.chronoflow.backend.mapper.AdminUserMapper;
+import com.chronoflow.backend.security.JwtTokenProvider;
 import com.chronoflow.backend.service.AdminService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,10 +21,50 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminUserMapper adminUserMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    // ==================== 登录（无需认证） ====================
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        String password = body.get("password");
+        if (username == null || password == null) {
+            throw new BusinessException("用户名和密码不能为空");
+        }
+
+        AdminUser admin = adminUserMapper.selectOne(
+                new LambdaQueryWrapper<AdminUser>().eq(AdminUser::getUsername, username));
+        if (admin == null || !passwordEncoder.matches(password, admin.getPassword())) {
+            throw new BusinessException("用户名或密码错误");
+        }
+
+        // 生成 JWT（用 admin 的 id 作为 userId，username 作为 subject）
+        String accessToken = jwtTokenProvider.generateAccessToken(Map.of(), admin.getId(),
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(username).password("").authorities("ROLE_USER").build());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(Map.of(), admin.getId(),
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(username).password("").authorities("ROLE_USER").build());
+
+        Map<String, Object> result = Map.of(
+                "accessToken", accessToken,
+                "refreshToken", refreshToken,
+                "tokenType", "Bearer",
+                "userId", admin.getId(),
+                "username", username,
+                "nickname", username
+        );
+        log.info("Admin login: username={}", username);
+        return ResponseEntity.ok(ApiResponse.success("登录成功", result));
+    }
+
+    // ==================== 反馈管理 ====================
 
     @GetMapping("/feedbacks")
     public ResponseEntity<ApiResponse<PageResult<FeedbackResponse>>> listFeedbacks(
@@ -28,8 +73,8 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type) {
         log.info("Admin list feedbacks: page={}, size={}, status={}, type={}", page, size, status, type);
-        PageResult<FeedbackResponse> result = adminService.listFeedbacks(page, size, status, type);
-        return ResponseEntity.ok(ApiResponse.success("获取成功", result));
+        return ResponseEntity.ok(ApiResponse.success("获取成功",
+                adminService.listFeedbacks(page, size, status, type)));
     }
 
     @GetMapping("/feedbacks/{id}")
@@ -60,14 +105,5 @@ public class AdminController {
             @RequestParam(defaultValue = "20") int size) {
         log.info("Admin list users: page={}, size={}", page, size);
         return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listUsers(page, size)));
-    }
-
-    @PostMapping("/users/{id}/role")
-    public ResponseEntity<ApiResponse<Void>> updateUserRole(
-            @PathVariable Long id, @RequestBody Map<String, String> body) {
-        String role = body.get("role");
-        log.info("Admin update user role: userId={}, role={}", id, role);
-        adminService.updateUserRole(id, role);
-        return ResponseEntity.ok(ApiResponse.success("更新成功", null));
     }
 }

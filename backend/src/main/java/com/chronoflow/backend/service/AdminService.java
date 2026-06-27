@@ -79,7 +79,7 @@ public class AdminService {
     public PageResult<Map<String, Object>> listUsers(int page, int size) {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         wrapper.orderByDesc("created_at");
-        wrapper.select("id", "username", "nickname", "email", "phone", "role",
+        wrapper.select("id", "username", "nickname", "email", "phone",
                 "real_name_verified", "created_at");
 
         Page<User> p = new Page<>(page, size);
@@ -92,24 +92,11 @@ public class AdminService {
             m.put("nickname", u.getNickname());
             m.put("email", u.getEmail());
             m.put("phone", u.getPhone());
-            m.put("role", u.getRole());
             m.put("realNameVerified", u.getRealNameVerified());
             m.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : null);
             return m;
         }).toList();
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
-    }
-
-    @Transactional
-    public void updateUserRole(Long userId, String role) {
-        if (!"ADMIN".equals(role) && !"USER".equals(role)) {
-            throw new BusinessException("无效的角色: " + role);
-        }
-        User user = userMapper.selectById(userId);
-        if (user == null) throw new BusinessException("用户不存在");
-        user.setRole(role);
-        userMapper.updateById(user);
-        log.info("User role updated: userId={}, newRole={}", userId, role);
     }
 
     private FeedbackResponse toResponse(Feedback f) {

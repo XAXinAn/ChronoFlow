@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) DEFAULT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色: USER / ADMIN',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     real_name_verified TINYINT DEFAULT 0,
@@ -118,15 +117,16 @@ CREATE TABLE IF NOT EXISTS schedule_publish_targets (
     CONSTRAINT fk_pub_group FOREIGN KEY (target_group_id) REFERENCES `groups`(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 迁移：为已有数据库补充 role 列（新表通过 CREATE TABLE 已包含）
-SET @role_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role');
-SET @sql_role = IF(@role_exists = 0,
-  'ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT ''USER'' COMMENT ''角色: USER / ADMIN'' AFTER password',
-  'SELECT ''role column already exists''');
-PREPARE stmt_role FROM @sql_role;
-EXECUTE stmt_role;
-DEALLOCATE PREPARE stmt_role;
+-- 管理后台账号表（独立于用户表）
+CREATE TABLE IF NOT EXISTS admin_users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL COMMENT 'BCrypt加密',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 默认管理员账号 admin / admin123（首次部署后请修改密码）
+INSERT IGNORE INTO admin_users (username, password) VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
 
 -- 用户反馈表
 CREATE TABLE IF NOT EXISTS feedbacks (

@@ -14,12 +14,8 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/auth/login', { username, password });
+      const res = await api.post('/admin/login', { username, password });
       const data = res.data.data || res.data;
-      if (data.role !== 'ADMIN') {
-        setError('您没有管理员权限');
-        return;
-      }
       localStorage.setItem('admin_token', JSON.stringify(data));
       navigate('/feedbacks');
     } catch (e: any) {

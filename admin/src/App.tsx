@@ -8,12 +8,6 @@ import UsersPage from './pages/UsersPage';
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const stored = localStorage.getItem('admin_token');
   if (!stored) return <Navigate to="/login" replace />;
-  try {
-    const user = JSON.parse(stored);
-    if (user.role !== 'ADMIN') { localStorage.removeItem('admin_token'); return <Navigate to="/login" replace />; }
-  } catch {
-    return <Navigate to="/login" replace />;
-  }
   return <Layout>{children}</Layout>;
 }
 

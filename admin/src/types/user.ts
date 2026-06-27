@@ -4,7 +4,6 @@ export interface User {
   nickname: string;
   email: string | null;
   phone: string;
-  role: 'USER' | 'ADMIN';
   realNameVerified: boolean;
   createdAt: string;
 }

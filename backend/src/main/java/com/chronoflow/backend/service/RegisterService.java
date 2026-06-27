@@ -147,14 +147,11 @@ public class RegisterService {
         String lastFourPhone = phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone;
         String nickname = lastFourPhone + "用户";
 
-        String role = "USER";
-
         User user = User.builder()
                 .username(pending.getUsername())
                 .nickname(nickname)
                 .phone(phone)
                 .password(pending.getPassword())
-                .role(role)
                 .realNameVerified(true)
                 .realName(pending.getRealName())
                 .idCardNumber(encryptedIdCard)

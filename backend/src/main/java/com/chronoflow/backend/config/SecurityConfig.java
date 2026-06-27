@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/api/auth/send-email", "/api/auth/email-login",
                                 "/api/auth/risk-verify",
                                 "/api/auth/logout", "/api/auth/delete-account",
+                                "/api/admin/login",
                                 "/api/app/version",
                                 "/admin/**",
                                 "/ChronoFlow-v1.0.1.apk",
