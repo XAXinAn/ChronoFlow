@@ -36,10 +36,11 @@ public class AdminService {
     private final ScheduleMapper scheduleMapper;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public PageResult<FeedbackResponse> listFeedbacks(int page, int size, String status, String type) {
+    public PageResult<FeedbackResponse> listFeedbacks(int page, int size, String status, String type, String keyword) {
         QueryWrapper<Feedback> wrapper = new QueryWrapper<>();
         if (status != null && !status.isBlank()) wrapper.eq("status", status);
         if (type != null && !type.isBlank()) wrapper.eq("type", type);
+        if (keyword != null && !keyword.isBlank()) wrapper.like("content", keyword);
         wrapper.orderByDesc("created_at");
 
         Page<Feedback> p = new Page<>(page, size);
@@ -85,8 +86,12 @@ public class AdminService {
         return toResponse(f);
     }
 
-    public PageResult<Map<String, Object>> listUsers(int page, int size) {
+    public PageResult<Map<String, Object>> listUsers(int page, int size, String keyword) {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.and(w -> w.like("username", keyword).or().like("nickname", keyword)
+                    .or().like("phone", keyword).or().like("email", keyword));
+        }
         wrapper.orderByDesc("created_at");
         wrapper.select("id", "username", "nickname", "email", "phone",
                 "real_name_verified", "created_at");
@@ -110,10 +115,12 @@ public class AdminService {
 
     // ==================== 群组 ====================
 
-    public PageResult<Map<String, Object>> listGroups(int page, int size) {
+    public PageResult<Map<String, Object>> listGroups(int page, int size, String keyword) {
+        QueryWrapper<Group> wrapper = new QueryWrapper<>();
+        if (keyword != null && !keyword.isBlank()) wrapper.like("name", keyword);
+        wrapper.orderByDesc("created_at");
         Page<Group> p = new Page<>(page, size);
-        Page<Group> result = groupMapper.selectPage(p,
-                new QueryWrapper<Group>().orderByDesc("created_at"));
+        Page<Group> result = groupMapper.selectPage(p, wrapper);
 
         List<String> groupIds = result.getRecords().stream().map(Group::getId).toList();
         java.util.Map<String, Integer> memberCounts = new java.util.HashMap<>();
@@ -140,10 +147,14 @@ public class AdminService {
 
     // ==================== 日程 ====================
 
-    public PageResult<Map<String, Object>> listSchedules(int page, int size) {
+    public PageResult<Map<String, Object>> listSchedules(int page, int size, String keyword) {
+        QueryWrapper<Schedule> wrapper = new QueryWrapper<>();
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.and(w -> w.like("title", keyword).or().like("description", keyword));
+        }
+        wrapper.orderByDesc("schedule_time");
         Page<Schedule> p = new Page<>(page, size);
-        Page<Schedule> result = scheduleMapper.selectPage(p,
-                new QueryWrapper<Schedule>().orderByDesc("schedule_time"));
+        Page<Schedule> result = scheduleMapper.selectPage(p, wrapper);
 
         List<String> groupIds = result.getRecords().stream()
                 .map(Schedule::getGroupId).filter(Objects::nonNull).distinct().toList();

@@ -13,13 +13,14 @@ export default function FeedbacksPage() {
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
+  const [keyword, setKeyword] = useState('');
   const navigate = useNavigate();
 
   const load = async (p = 1) => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/admin/feedbacks', { params: { page: p, size: 20, status: status || undefined, type: type || undefined } });
+      const res = await api.get('/admin/feedbacks', { params: { page: p, size: 20, status: status || undefined, type: type || undefined, keyword: keyword || undefined } });
       const d = res.data.data || res.data;
       setFeedbacks(d.records || []);
       setTotal(d.total || 0);
@@ -31,7 +32,7 @@ export default function FeedbacksPage() {
     }
   };
 
-  useEffect(() => { load(); }, [status, type]);
+  useEffect(() => { load(); }, [status, type, keyword]);
 
   if (loading) return <p style={{ color: '#999', textAlign: 'center', padding: 40 }}>加载中...</p>;
   if (error) return <p style={{ color: '#e74c3c', textAlign: 'center', padding: 40 }}>{error} <button onClick={() => load()} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#2980b9' }}>重试</button></p>;
@@ -53,6 +54,9 @@ export default function FeedbacksPage() {
           <option value="suggestion">建议</option>
           <option value="other">其他</option>
         </select>
+        <input placeholder="搜索内容..." value={keyword} onChange={e => setKeyword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && load()}
+          style={{ padding: '6px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, outline: 'none', flex: 1, boxSizing: 'border-box' }} />
       </div>
       {feedbacks.length === 0 ? (
         <p style={{ color: '#999', textAlign: 'center', padding: 40 }}>暂无反馈</p>

@@ -73,10 +73,11 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String type) {
-        log.info("Admin list feedbacks: page={}, size={}, status={}, type={}", page, size, status, type);
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword) {
+        log.info("Admin list feedbacks: page={}, size={}, status={}, type={}, keyword={}", page, size, status, type, keyword);
         return ResponseEntity.ok(ApiResponse.success("获取成功",
-                adminService.listFeedbacks(page, size, status, type)));
+                adminService.listFeedbacks(page, size, status, type, keyword)));
     }
 
     @GetMapping("/feedbacks/{id}")
@@ -104,24 +105,27 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> listUsers(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("Admin list users: page={}, size={}", page, size);
-        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listUsers(page, size)));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword) {
+        log.info("Admin list users: page={}, size={}, keyword={}", page, size, keyword);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listUsers(page, size, keyword)));
     }
 
     @GetMapping("/groups")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> listGroups(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("Admin list groups: page={}, size={}", page, size);
-        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listGroups(page, size)));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword) {
+        log.info("Admin list groups: page={}, size={}, keyword={}", page, size, keyword);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listGroups(page, size, keyword)));
     }
 
     @GetMapping("/schedules")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> listSchedules(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("Admin list schedules: page={}, size={}", page, size);
-        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listSchedules(page, size)));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword) {
+        log.info("Admin list schedules: page={}, size={}, keyword={}", page, size, keyword);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listSchedules(page, size, keyword)));
     }
 }
