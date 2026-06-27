@@ -1,11 +1,15 @@
+import { Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
-import FeedbacksPage from './pages/FeedbacksPage';
-import FeedbackDetailPage from './pages/FeedbackDetailPage';
-import UsersPage from './pages/UsersPage';
-import GroupsPage from './pages/GroupsPage';
-import SchedulesPage from './pages/SchedulesPage';
+
+const FeedbacksPage = lazy(() => import('./pages/FeedbacksPage'));
+const FeedbackDetailPage = lazy(() => import('./pages/FeedbackDetailPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const GroupsPage = lazy(() => import('./pages/GroupsPage'));
+const SchedulesPage = lazy(() => import('./pages/SchedulesPage'));
+
+const Loading = () => <p style={{ color: '#999', textAlign: 'center', padding: 40 }}>加载中...</p>;
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const stored = localStorage.getItem('admin_token');
@@ -18,11 +22,11 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/feedbacks" element={<AuthGuard><FeedbacksPage /></AuthGuard>} />
-        <Route path="/feedbacks/:id" element={<AuthGuard><FeedbackDetailPage /></AuthGuard>} />
-        <Route path="/users" element={<AuthGuard><UsersPage /></AuthGuard>} />
-        <Route path="/groups" element={<AuthGuard><GroupsPage /></AuthGuard>} />
-        <Route path="/schedules" element={<AuthGuard><SchedulesPage /></AuthGuard>} />
+        <Route path="/feedbacks" element={<AuthGuard><Suspense fallback={<Loading />}><FeedbacksPage /></Suspense></AuthGuard>} />
+        <Route path="/feedbacks/:id" element={<AuthGuard><Suspense fallback={<Loading />}><FeedbackDetailPage /></Suspense></AuthGuard>} />
+        <Route path="/users" element={<AuthGuard><Suspense fallback={<Loading />}><UsersPage /></Suspense></AuthGuard>} />
+        <Route path="/groups" element={<AuthGuard><Suspense fallback={<Loading />}><GroupsPage /></Suspense></AuthGuard>} />
+        <Route path="/schedules" element={<AuthGuard><Suspense fallback={<Loading />}><SchedulesPage /></Suspense></AuthGuard>} />
         <Route path="*" element={<Navigate to="/feedbacks" replace />} />
       </Routes>
     </HashRouter>
