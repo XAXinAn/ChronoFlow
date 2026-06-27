@@ -20,8 +20,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ChronoFlow
         </div>
         <nav style={{ flex: 1, padding: '8px 0' }}>
-          <NavLink to="/feedbacks" style={navStyle}>📋 反馈管理</NavLink>
-          <NavLink to="/users" style={navStyle}>👥 用户管理</NavLink>
+          <NavLink to="/feedbacks" style={navStyle}>反馈管理</NavLink>
+          <NavLink to="/users" style={navStyle}>用户管理</NavLink>
+          <NavLink to="/groups" style={navStyle}>群组管理</NavLink>
+          <NavLink to="/schedules" style={navStyle}>日程管理</NavLink>
         </nav>
         <div style={{ padding: 16, borderTop: '1px solid #333', fontSize: 13, color: '#999' }}>
           {user?.nickname || user?.username || '管理员'}

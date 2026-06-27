@@ -108,4 +108,20 @@ public class AdminController {
         log.info("Admin list users: page={}, size={}", page, size);
         return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listUsers(page, size)));
     }
+
+    @GetMapping("/groups")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> listGroups(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("Admin list groups: page={}, size={}", page, size);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listGroups(page, size)));
+    }
+
+    @GetMapping("/schedules")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> listSchedules(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("Admin list schedules: page={}, size={}", page, size);
+        return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listSchedules(page, size)));
+    }
 }
