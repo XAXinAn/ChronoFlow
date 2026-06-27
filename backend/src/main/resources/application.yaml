@@ -19,7 +19,7 @@ spring:
       model: ${DASHSCOPE_MODEL:qwen-flash}
   web:
     resources:
-      static-locations: file:/app/static/
+      static-locations: classpath:/static/,file:/app/static/
 
 mybatis-plus:
   type-aliases-package: com.chronoflow.backend.entity
