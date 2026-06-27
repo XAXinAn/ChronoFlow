@@ -128,4 +128,39 @@ public class AdminController {
         log.info("Admin list schedules: page={}, size={}, keyword={}", page, size, keyword);
         return ResponseEntity.ok(ApiResponse.success("获取成功", adminService.listSchedules(page, size, keyword)));
     }
+
+    @DeleteMapping("/groups/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteGroup(@PathVariable String id) {
+        log.info("Admin delete group: id={}", id);
+        adminService.deleteGroup(id);
+        return ResponseEntity.ok(ApiResponse.success("删除成功", null));
+    }
+
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateGroup(@PathVariable String id, @RequestBody Map<String, String> body) {
+        log.info("Admin update group: id={}, name={}", id, body.get("name"));
+        adminService.updateGroup(id, body.get("name"));
+        return ResponseEntity.ok(ApiResponse.success("更新成功", null));
+    }
+
+    @PostMapping("/schedules")
+    public ResponseEntity<ApiResponse<Void>> createSchedule(@RequestBody Map<String, String> body) {
+        log.info("Admin create schedule: userId={}, title={}", body.get("userId"), body.get("title"));
+        adminService.createSchedule(body);
+        return ResponseEntity.ok(ApiResponse.success("创建成功", null));
+    }
+
+    @PutMapping("/schedules/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateSchedule(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        log.info("Admin update schedule: id={}", id);
+        adminService.updateSchedule(id, body);
+        return ResponseEntity.ok(ApiResponse.success("更新成功", null));
+    }
+
+    @DeleteMapping("/schedules/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSchedule(@PathVariable Long id) {
+        log.info("Admin delete schedule: id={}", id);
+        adminService.deleteSchedule(id);
+        return ResponseEntity.ok(ApiResponse.success("删除成功", null));
+    }
 }

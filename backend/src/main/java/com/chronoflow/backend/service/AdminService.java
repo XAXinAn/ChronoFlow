@@ -9,8 +9,10 @@ import com.chronoflow.backend.exception.BusinessException;
 import com.chronoflow.backend.mapper.FeedbackMapper;
 import com.chronoflow.backend.mapper.GroupMapper;
 import com.chronoflow.backend.mapper.GroupMemberMapper;
+import com.chronoflow.backend.mapper.JoinRequestMapper;
 import com.chronoflow.backend.mapper.ScheduleMapper;
 import com.chronoflow.backend.mapper.UserMapper;
+import com.chronoflow.backend.entity.JoinRequest;
 import com.chronoflow.backend.entity.Group;
 import com.chronoflow.backend.entity.GroupMember;
 import com.chronoflow.backend.entity.Schedule;
@@ -33,6 +35,7 @@ public class AdminService {
     private final GroupMapper groupMapper;
     private final GroupMemberMapper groupMemberMapper;
     private final ScheduleMapper scheduleMapper;
+    private final JoinRequestMapper joinRequestMapper;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public PageResult<FeedbackResponse> listFeedbacks(int page, int size, String status, String type, String keyword) {
@@ -190,6 +193,70 @@ public class AdminService {
             return m;
         }).toList();
         return new PageResult<>(records, total, page, size);
+    }
+
+    // ==================== 群组 CRUD ====================
+
+    @Transactional
+    public void deleteGroup(String groupId) {
+        Group g = groupMapper.selectById(groupId);
+        if (g == null) throw new BusinessException("群组不存在");
+        long childCount = groupMapper.selectCount(new QueryWrapper<Group>().eq("parent_id", groupId));
+        if (childCount > 0) throw new BusinessException("有" + childCount + "个子群组，请先删除子群组");
+        groupMemberMapper.delete(new QueryWrapper<GroupMember>().eq("group_id", groupId));
+        joinRequestMapper.delete(new QueryWrapper<JoinRequest>().eq("group_id", groupId));
+        groupMapper.deleteById(groupId);
+        log.info("Admin deleted group: id={}", groupId);
+    }
+
+    @Transactional
+    public void updateGroup(String groupId, String name) {
+        if (name == null || name.isBlank()) throw new BusinessException("名称不能为空");
+        Group g = groupMapper.selectById(groupId);
+        if (g == null) throw new BusinessException("群组不存在");
+        g.setName(name.trim());
+        groupMapper.updateById(g);
+        log.info("Admin updated group: id={}, name={}", groupId, name);
+    }
+
+    // ==================== 日程 CRUD ====================
+
+    @Transactional
+    public void createSchedule(Map<String, String> body) {
+        String title = body.get("title");
+        String userIdStr = body.get("userId");
+        if (title == null || title.isBlank()) throw new BusinessException("标题不能为空");
+        if (userIdStr == null) throw new BusinessException("用户ID不能为空");
+        Long userId = Long.parseLong(userIdStr);
+        Schedule s = new Schedule();
+        s.setUserId(userId);
+        s.setTitle(title.trim());
+        s.setDescription(body.getOrDefault("description", ""));
+        s.setLocation(body.getOrDefault("location", ""));
+        String timeStr = body.get("scheduleTime");
+        s.setTime(timeStr != null && !timeStr.isBlank() ? LocalDateTime.parse(timeStr.replace("T", " ")) : LocalDateTime.now());
+        scheduleMapper.insert(s);
+        log.info("Admin created schedule: id={}", s.getId());
+    }
+
+    @Transactional
+    public void updateSchedule(Long scheduleId, Map<String, String> body) {
+        Schedule s = scheduleMapper.selectById(scheduleId);
+        if (s == null) throw new BusinessException("日程不存在");
+        if (body.containsKey("title")) s.setTitle(body.get("title").trim());
+        if (body.containsKey("description")) s.setDescription(body.get("description"));
+        if (body.containsKey("location")) s.setLocation(body.get("location"));
+        String timeStr = body.get("scheduleTime");
+        if (timeStr != null && !timeStr.isBlank()) s.setTime(LocalDateTime.parse(timeStr.replace("T", " ")));
+        scheduleMapper.updateById(s);
+        log.info("Admin updated schedule: id={}", scheduleId);
+    }
+
+    @Transactional
+    public void deleteSchedule(Long scheduleId) {
+        if (scheduleMapper.selectById(scheduleId) == null) throw new BusinessException("日程不存在");
+        scheduleMapper.deleteById(scheduleId);
+        log.info("Admin deleted schedule: id={}", scheduleId);
     }
 
     private FeedbackResponse toResponse(Feedback f) {
