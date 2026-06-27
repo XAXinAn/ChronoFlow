@@ -37,3 +37,4 @@ release/
 db_backup/
 uploads/
 local.properties
+start-prod.sh
