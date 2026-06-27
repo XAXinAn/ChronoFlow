@@ -1,7 +1,6 @@
 package com.chronoflow.backend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chronoflow.backend.dto.FeedbackResponse;
 import com.chronoflow.backend.dto.PageResult;
 import com.chronoflow.backend.entity.Feedback;
@@ -43,13 +42,12 @@ public class AdminService {
         if (keyword != null && !keyword.isBlank()) wrapper.like("content", keyword);
         wrapper.orderByDesc("created_at");
 
-        Page<Feedback> p = new Page<>(page, size);
-        Page<Feedback> result = feedbackMapper.selectPage(p, wrapper);
+        long total = feedbackMapper.selectCount(wrapper);
+        wrapper.last("LIMIT " + ((page - 1) * size) + "," + size);
+        List<Feedback> list = feedbackMapper.selectList(wrapper);
 
-        List<FeedbackResponse> records = result.getRecords().stream()
-                .map(this::toResponse)
-                .toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        List<FeedbackResponse> records = list.stream().map(this::toResponse).toList();
+        return new PageResult<>(records, total, page, size);
     }
 
     public FeedbackResponse getFeedbackDetail(Long feedbackId) {
@@ -96,10 +94,11 @@ public class AdminService {
         wrapper.select("id", "username", "nickname", "email", "phone",
                 "real_name_verified", "created_at");
 
-        Page<User> p = new Page<>(page, size);
-        Page<User> result = userMapper.selectPage(p, wrapper);
+        long total = userMapper.selectCount(wrapper);
+        wrapper.last("LIMIT " + ((page - 1) * size) + "," + size);
+        List<User> userList = userMapper.selectList(wrapper);
 
-        List<Map<String, Object>> records = result.getRecords().stream().map(u -> {
+        List<Map<String, Object>> records = userList.stream().map(u -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", u.getId());
             m.put("username", u.getUsername());
@@ -110,7 +109,7 @@ public class AdminService {
             m.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : null);
             return m;
         }).toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        return new PageResult<>(records, total, page, size);
     }
 
     // ==================== 群组 ====================
@@ -119,10 +118,12 @@ public class AdminService {
         QueryWrapper<Group> wrapper = new QueryWrapper<>();
         if (keyword != null && !keyword.isBlank()) wrapper.like("name", keyword);
         wrapper.orderByDesc("created_at");
-        Page<Group> p = new Page<>(page, size);
-        Page<Group> result = groupMapper.selectPage(p, wrapper);
 
-        List<String> groupIds = result.getRecords().stream().map(Group::getId).toList();
+        long total = groupMapper.selectCount(wrapper);
+        wrapper.last("LIMIT " + ((page - 1) * size) + "," + size);
+        List<Group> groupList = groupMapper.selectList(wrapper);
+
+        List<String> groupIds = groupList.stream().map(Group::getId).toList();
         java.util.Map<String, Integer> memberCounts = new java.util.HashMap<>();
         if (!groupIds.isEmpty()) {
             for (GroupMember m : groupMemberMapper.selectList(
@@ -131,7 +132,7 @@ public class AdminService {
             }
         }
 
-        List<Map<String, Object>> records = result.getRecords().stream().map(g -> {
+        List<Map<String, Object>> records = groupList.stream().map(g -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", g.getId());
             m.put("name", g.getName());
@@ -142,7 +143,7 @@ public class AdminService {
             m.put("createdAt", g.getCreatedAt() != null ? g.getCreatedAt().toString() : null);
             return m;
         }).toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        return new PageResult<>(records, total, page, size);
     }
 
     // ==================== 日程 ====================
@@ -153,10 +154,12 @@ public class AdminService {
             wrapper.and(w -> w.like("title", keyword).or().like("description", keyword));
         }
         wrapper.orderByDesc("schedule_time");
-        Page<Schedule> p = new Page<>(page, size);
-        Page<Schedule> result = scheduleMapper.selectPage(p, wrapper);
 
-        List<String> groupIds = result.getRecords().stream()
+        long total = scheduleMapper.selectCount(wrapper);
+        wrapper.last("LIMIT " + ((page - 1) * size) + "," + size);
+        List<Schedule> scheduleList = scheduleMapper.selectList(wrapper);
+
+        List<String> groupIds = scheduleList.stream()
                 .map(Schedule::getGroupId).filter(Objects::nonNull).distinct().toList();
         java.util.Map<String, String> groupNames = new java.util.HashMap<>();
         if (!groupIds.isEmpty()) {
@@ -166,7 +169,7 @@ public class AdminService {
             }
         }
 
-        List<Map<String, Object>> records = result.getRecords().stream().map(s -> {
+        List<Map<String, Object>> records = scheduleList.stream().map(s -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", s.getId());
             m.put("userId", s.getUserId());
@@ -179,7 +182,7 @@ public class AdminService {
             m.put("createdAt", s.getCreatedAt() != null ? s.getCreatedAt().toString() : null);
             return m;
         }).toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        return new PageResult<>(records, total, page, size);
     }
 
     private FeedbackResponse toResponse(Feedback f) {
