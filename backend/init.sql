@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 默认管理员账号 admin / admin123（首次部署后请修改密码）
-INSERT IGNORE INTO admin_users (username, password) VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+INSERT IGNORE INTO admin_users (username, password) VALUES ('admin', '$2b$10$EuNpQTArxa5iCqXJ5o7y.O49MvR23rQH07GrifbRYztAZhIb8y1NO');
 
 -- 用户反馈表
 CREATE TABLE IF NOT EXISTS feedbacks (
