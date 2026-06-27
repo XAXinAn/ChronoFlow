@@ -36,3 +36,4 @@ frontend/android/app/chronoflow.keystore
 release/
 db_backup/
 uploads/
+local.properties
