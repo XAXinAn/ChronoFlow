@@ -2,7 +2,6 @@ package com.chronoflow.backend.service;
 
 import com.chronoflow.backend.exception.BusinessException;
 import io.minio.*;
-import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,8 +42,12 @@ public class MinioService {
                 boolean exists = c.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
                 if (!exists) {
                     c.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-                    log.info("Created MinIO bucket: {}", bucket);
                 }
+                // Ensure public-read access for images
+                c.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(bucket).config(
+                    "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::" + bucket + "/*\"]}]}"
+                ).build());
+                log.info("MinioService configured: endpoint={}, bucket={} (public-read)", endpoint, bucket);
                 log.info("MinioService configured: endpoint={}, bucket={}", endpoint, bucket);
             } catch (Exception e) {
                 log.error("Failed to initialize MinIO bucket: {}", e.getMessage());
