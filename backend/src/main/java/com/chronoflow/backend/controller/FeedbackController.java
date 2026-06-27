@@ -1,10 +1,11 @@
 package com.chronoflow.backend.controller;
 
+import com.chronoflow.backend.dto.ApiResponse;
 import com.chronoflow.backend.dto.FeedbackResponse;
-import com.chronoflow.backend.dto.FeedbackSubmitRequest;
+import com.chronoflow.backend.dto.PageResult;
+import com.chronoflow.backend.exception.BusinessException;
 import com.chronoflow.backend.service.FeedbackService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -17,11 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.MalformedURLException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 
-/**用户反馈控制器*/
 @Slf4j
 @RestController
 @RequestMapping("/api/feedback")
@@ -30,62 +27,56 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    // ==================== 提交反馈 ====================
-    
-    @PostMapping
-    public ResponseEntity<FeedbackResponse> submitFeedback(
+    // ==================== 提交反馈（单步 Multipart） ====================
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<FeedbackResponse>> submitFeedback(
             HttpServletRequest request,
-            @Valid @RequestBody FeedbackSubmitRequest body) {
+            @RequestPart("type") String type,
+            @RequestPart("content") String content,
+            @RequestPart(value = "files", required = false) MultipartFile[] files) {
         Long userId = getUserIdFromRequest(request);
-        log.info("POST /api/feedback - userId: {}, type: {}", userId, body.getType());
-        FeedbackResponse response = feedbackService.submitFeedback(userId, body);
-        return ResponseEntity.ok(response);
+        log.info("POST /api/feedback multipart - userId: {}, type: {}, files: {}",
+                userId, type, files != null ? files.length : 0);
+        FeedbackResponse response = feedbackService.submitFeedback(userId, type, content, files);
+        return ResponseEntity.ok(ApiResponse.success("提交成功", response));
     }
 
-    // ==================== 我的反馈列表 ====================
-    
+    // ==================== 我的反馈列表（分页） ====================
+
     @GetMapping("/my")
-    public ResponseEntity<List<FeedbackResponse>> getMyFeedbacks(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<PageResult<FeedbackResponse>>> getMyFeedbacks(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Long userId = getUserIdFromRequest(request);
-        log.info("GET /api/feedback/my - userId: {}", userId);
-        List<FeedbackResponse> responses = feedbackService.getMyFeedbacks(userId);
-        return ResponseEntity.ok(responses);
+        log.info("GET /api/feedback/my - userId: {}, page: {}, size: {}", userId, page, size);
+        return ResponseEntity.ok(ApiResponse.success("获取成功",
+                feedbackService.getMyFeedbacks(userId, page, size)));
     }
 
     // ==================== 反馈详情 ====================
-    
+
     @GetMapping("/{id}")
-    public ResponseEntity<FeedbackResponse> getFeedbackDetail(
-            HttpServletRequest request,
-            @PathVariable Long id) {
+    public ResponseEntity<ApiResponse<FeedbackResponse>> getFeedbackDetail(
+            HttpServletRequest request, @PathVariable Long id) {
         Long userId = getUserIdFromRequest(request);
         log.info("GET /api/feedback/{} - userId: {}", id, userId);
-        FeedbackResponse response = feedbackService.getFeedbackDetail(userId, id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("获取成功",
+                feedbackService.getFeedbackDetail(userId, id)));
     }
 
-    // ==================== 批量图片上传 ====================
-    
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> uploadImages(
-            HttpServletRequest request,
-            @RequestParam("files") MultipartFile[] files) {
-        Long userId = getUserIdFromRequest(request);
-        log.info("POST /api/feedback/upload - userId: {}, fileCount: {}", userId,
-                files != null ? files.length : 0);
-        List<String> urls = feedbackService.uploadImages(files);
-        return ResponseEntity.ok(Map.of(
-                "urls", urls,
-                "count", urls.size()
-        ));
-    }
+    // ==================== 图片文件服务（路径穿越防护 + 认证） ====================
 
-    // ==================== 图片文件服务 ====================
-    
     @GetMapping("/image/{filename}")
-    public ResponseEntity<Resource> serveImage(@PathVariable String filename) {
+    public ResponseEntity<Resource> serveImage(
+            HttpServletRequest request, @PathVariable String filename) {
+        // Require authentication
+        Long userId = getUserIdFromRequest(request);
+
         try {
-            Path filePath = Paths.get(System.getProperty("user.dir"), "uploads", "feedback", filename);
+            Path filePath = feedbackService.resolveSafePath(
+                    "./uploads/feedback", filename);
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {
@@ -93,13 +84,14 @@ public class FeedbackController {
                 return ResponseEntity.notFound().build();
             }
 
-            // 根据扩展名设置 Content-Type
             String contentType = guessContentType(filename);
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CACHE_CONTROL, "max-age=86400")
                     .body(resource);
 
+        } catch (BusinessException e) {
+            return ResponseEntity.badRequest().build();
         } catch (MalformedURLException e) {
             log.error("Failed to serve image: {}", filename, e);
             return ResponseEntity.internalServerError().build();
@@ -108,18 +100,18 @@ public class FeedbackController {
 
     // ==================== 辅助方法 ====================
 
-    /**从 JWT 认证过滤器中提取当前登录用户 ID*/
     private Long getUserIdFromRequest(HttpServletRequest request) {
-        return (Long) request.getAttribute("userId");
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            throw new BusinessException("用户未登录");
+        }
+        return userId;
     }
 
-    /**根据文件名后缀推断 MIME 类型*/
     private String guessContentType(String filename) {
         String lower = filename.toLowerCase();
-        if (lower.endsWith(".png")) {
-            return "image/png";
-        }
-        // 默认 jpg / jpeg
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
         return "image/jpeg";
     }
 }

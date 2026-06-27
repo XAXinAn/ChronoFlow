@@ -56,7 +56,7 @@ public class SecurityConfig {
                                 "/api/auth/risk-verify",
                                 "/api/auth/logout", "/api/auth/delete-account",
                                 "/api/app/version",
-                                "/api/feedback/image/**",
+                                "/admin/**",
                                 "/ChronoFlow-v1.0.1.apk",
                                 "/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").denyAll()

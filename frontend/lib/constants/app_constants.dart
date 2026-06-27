@@ -63,11 +63,6 @@ class AppConstants {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    
-    String p = path;
-    if (p.startsWith('/api/')) {
-      p = p.substring(4); // 去掉 "/api"，保留 "/feedback/image/xxx.jpg"
-    }
-    return '$baseUrl$p';
+    return Uri.parse(baseUrl).resolve(path).toString();
   }
 }
