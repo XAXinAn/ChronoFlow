@@ -68,4 +68,9 @@ aliyun:
     endpoint: ${ALIYUN_CLOUDAUTH_ENDPOINT:cloudauth.cn-shanghai.aliyuncs.com}
     scene-id: ${ALIYUN_CLOUDAUTH_SCENE_ID:}
 
-
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:chronoflow}
+  base-url: ${MINIO_BASE_URL:http://localhost:9000/chronoflow}

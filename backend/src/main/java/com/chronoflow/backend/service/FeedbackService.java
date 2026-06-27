@@ -11,17 +11,12 @@ import com.chronoflow.backend.mapper.FeedbackMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -35,27 +30,12 @@ public class FeedbackService {
     private final ObjectMapper objectMapper;
     private final ContentModerationService contentModerationService;
     private final RateLimiterService rateLimiterService;
-
-    @Value("${feedback.upload-dir:./uploads/feedback}")
-    private String uploadDir;
+    private final MinioService minioService;
 
     private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024;
     private static final int MAX_IMAGE_COUNT = 5;
     private static final int CONTENT_MIN_LENGTH = 10;
     private static final int CONTENT_MAX_LENGTH = 500;
-
-    @PostConstruct
-    public void init() {
-        try {
-            Path dir = Paths.get(uploadDir);
-            if (!Files.exists(dir)) {
-                Files.createDirectories(dir);
-                log.info("Created feedback upload directory: {}", dir.toAbsolutePath());
-            }
-        } catch (IOException e) {
-            log.error("Failed to create upload directory: {}", uploadDir, e);
-        }
-    }
 
     // ==================== 反馈提交（单步 Multipart） ====================
 
@@ -88,8 +68,7 @@ public class FeedbackService {
             log.warn("Content moderation unavailable, allowing feedback through: {}", e.getMessage());
         }
 
-        // 5. Save image files
-        List<String> savedPaths = new ArrayList<>();
+        // 5. Upload images to MinIO
         List<String> imageUrls = new ArrayList<>();
         if (files != null && files.length > 0) {
             if (files.length > MAX_IMAGE_COUNT) {
@@ -104,21 +83,16 @@ public class FeedbackService {
                 if (imageType == null) {
                     throw new BusinessException("图片格式仅支持 jpg / png");
                 }
-                String filename = "feedback_" + System.currentTimeMillis() + "_"
+                String contentType = "jpeg".equals(imageType) ? "image/jpeg" : "image/png";
+                String objectName = "feedback/" + System.currentTimeMillis() + "_"
                         + UUID.randomUUID().toString().replace("-", "").substring(0, 8)
                         + "." + imageType;
                 try {
-                    Path destPath = Paths.get(uploadDir, filename);
-                    file.transferTo(destPath.toAbsolutePath());
-                    savedPaths.add(destPath.toAbsolutePath().toString());
-                    imageUrls.add("/api/feedback/image/" + filename);
-                    log.info("Feedback image saved: {}", destPath.toAbsolutePath());
+                    String url = minioService.upload(file.getBytes(), objectName, contentType);
+                    imageUrls.add(url);
+                    log.info("Feedback image uploaded to MinIO: {}", objectName);
                 } catch (IOException e) {
-                    // Clean up already-saved files on failure
-                    for (String p : savedPaths) {
-                        try { Files.deleteIfExists(Paths.get(p)); } catch (IOException ignored) {}
-                    }
-                    log.error("Failed to save feedback image: {}", filename, e);
+                    log.error("Failed to read image bytes: {}", e.getMessage());
                     throw new BusinessException("图片上传失败，请稍后重试");
                 }
             }
@@ -129,10 +103,6 @@ public class FeedbackService {
         try {
             imageUrlsJson = imageUrls.isEmpty() ? "[]" : objectMapper.writeValueAsString(imageUrls);
         } catch (JsonProcessingException e) {
-            // Clean up saved files
-            for (String p : savedPaths) {
-                try { Files.deleteIfExists(Paths.get(p)); } catch (IOException ignored) {}
-            }
             throw new BusinessException("图片数据处理失败，请重试");
         }
 
@@ -144,15 +114,8 @@ public class FeedbackService {
                 .status("pending")
                 .build();
 
-        // 7. Insert — if DB fails, clean up files
-        try {
-            feedbackMapper.insert(feedback);
-        } catch (Exception e) {
-            for (String p : savedPaths) {
-                try { Files.deleteIfExists(Paths.get(p)); } catch (IOException ignored) {}
-            }
-            throw new BusinessException("反馈提交失败，请重试");
-        }
+        // 7. Insert
+        feedbackMapper.insert(feedback);
 
         log.info("Feedback submitted: userId={}, feedbackId={}, type={}, images={}",
                 userId, feedback.getId(), type, imageUrls.size());
@@ -186,22 +149,6 @@ public class FeedbackService {
             throw new BusinessException("无权查看该反馈");
         }
         return toResponse(feedback);
-    }
-
-    // ==================== 图片安全路径解析 ====================
-
-    public Path resolveSafePath(String baseDir, String filename) {
-        // Reject dangerous characters
-        if (filename == null || !filename.matches("^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$")) {
-            throw new BusinessException("无效的文件名");
-        }
-        Path base = Paths.get(baseDir).toAbsolutePath().normalize();
-        Path resolved = base.resolve(filename).normalize();
-        if (!resolved.startsWith(base)) {
-            log.warn("Path traversal attempt blocked: filename={}", filename);
-            throw new BusinessException("无效的文件路径");
-        }
-        return resolved;
     }
 
     // ==================== 辅助方法 ====================

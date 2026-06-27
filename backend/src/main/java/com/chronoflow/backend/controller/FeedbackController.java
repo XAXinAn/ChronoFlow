@@ -8,16 +8,10 @@ import com.chronoflow.backend.service.FeedbackService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.net.MalformedURLException;
-import java.nio.file.Path;
 
 @Slf4j
 @RestController
@@ -66,38 +60,6 @@ public class FeedbackController {
                 feedbackService.getFeedbackDetail(userId, id)));
     }
 
-    // ==================== 图片文件服务（路径穿越防护 + 认证） ====================
-
-    @GetMapping("/image/{filename}")
-    public ResponseEntity<Resource> serveImage(
-            HttpServletRequest request, @PathVariable String filename) {
-        // Require authentication
-        Long userId = getUserIdFromRequest(request);
-
-        try {
-            Path filePath = feedbackService.resolveSafePath(
-                    "./uploads/feedback", filename);
-            Resource resource = new UrlResource(filePath.toUri());
-
-            if (!resource.exists() || !resource.isReadable()) {
-                log.warn("Image not found: {}", filename);
-                return ResponseEntity.notFound().build();
-            }
-
-            String contentType = guessContentType(filename);
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CACHE_CONTROL, "max-age=86400")
-                    .body(resource);
-
-        } catch (BusinessException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (MalformedURLException e) {
-            log.error("Failed to serve image: {}", filename, e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
     // ==================== 辅助方法 ====================
 
     private Long getUserIdFromRequest(HttpServletRequest request) {
@@ -106,12 +68,5 @@ public class FeedbackController {
             throw new BusinessException("用户未登录");
         }
         return userId;
-    }
-
-    private String guessContentType(String filename) {
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        return "image/jpeg";
     }
 }
