@@ -7,7 +7,7 @@ class AppConstants {
   // 真机调试：--dart-define=BASE_URL=http://192.168.x.x:8080/api
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://localhost:8080/api',
+    defaultValue: 'http://8.136.20.182:8080/api',
   );
 
   // 主题色 - 黑白极简风格
