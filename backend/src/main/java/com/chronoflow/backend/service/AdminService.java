@@ -234,7 +234,7 @@ public class AdminService {
         s.setDescription(body.getOrDefault("description", ""));
         s.setLocation(body.getOrDefault("location", ""));
         String timeStr = body.get("scheduleTime");
-        s.setTime(timeStr != null && !timeStr.isBlank() ? LocalDateTime.parse(timeStr.replace("T", " ")) : LocalDateTime.now());
+        s.setTime(timeStr != null && !timeStr.isBlank() ? LocalDateTime.parse(timeStr.replace(" ", "T")) : LocalDateTime.now());
         scheduleMapper.insert(s);
         log.info("Admin created schedule: id={}", s.getId());
     }
@@ -247,7 +247,7 @@ public class AdminService {
         if (body.containsKey("description")) s.setDescription(body.get("description"));
         if (body.containsKey("location")) s.setLocation(body.get("location"));
         String timeStr = body.get("scheduleTime");
-        if (timeStr != null && !timeStr.isBlank()) s.setTime(LocalDateTime.parse(timeStr.replace("T", " ")));
+        if (timeStr != null && !timeStr.isBlank()) s.setTime(LocalDateTime.parse(timeStr.replace(" ", "T")));
         scheduleMapper.updateById(s);
         log.info("Admin updated schedule: id={}", scheduleId);
     }
