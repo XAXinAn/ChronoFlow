@@ -25,25 +25,29 @@ export default function SchedulesPage() {
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16 }}>日程管理</h2>
-      {schedules.map(s => (
-        <div key={s.id} style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong style={{ fontSize: 15 }}>{s.title}</strong>
-            <span style={{ fontSize: 12, color: s.groupId ? '#2980b9' : '#7f8c8d',
-              background: s.groupId ? '#eaf2f8' : '#f0f0f0', padding: '2px 8px', borderRadius: 10 }}>
-              {s.groupName || '个人'}
-            </span>
-          </div>
-          <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>
-            用户 #{s.userId} · {s.scheduleTime?.slice(0, 16)} · {s.location || '无地点'}
-          </div>
-        </div>
-      ))}
+      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8 }}>
+        <thead>
+          <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+            <th style={th}>ID</th><th style={th}>标题</th><th style={th}>用户</th><th style={th}>群组</th><th style={th}>时间</th><th style={th}>地点</th><th style={th}>创建时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {schedules.map(s => (
+            <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}>
+              <td style={td}>{s.id}</td>
+              <td style={td}>{s.title}</td>
+              <td style={td}>#{s.userId}</td>
+              <td style={td}>{s.groupName || (s.groupId ? '#' + s.groupId?.slice(0, 8) : '个人')}</td>
+              <td style={td}>{s.scheduleTime?.slice(0, 16)}</td>
+              <td style={td}>{s.location || '-'}</td>
+              <td style={td}>{s.createdAt?.slice(0, 10)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <Pagination page={page} total={total} size={20} onChange={load} />
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: '#fff', padding: 16, marginBottom: 10, borderRadius: 8, border: '1px solid #eee',
-};
+const th: React.CSSProperties = { padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#666' };
+const td: React.CSSProperties = { padding: '10px 12px', fontSize: 13, color: '#333' };
