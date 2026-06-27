@@ -6,18 +6,16 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
 
   const load = useCallback(async (p = 1) => {
-    setLoading(true);
     try {
       const res = await api.get('/admin/groups', { params: { page: p, size: 20, keyword: keyword || undefined } });
       const d = res.data.data || res.data;
       setGroups(d.records || []);
       setTotal(d.total || 0);
       setPage(p);
-    } catch {} finally { setLoading(false); }
+    } catch {}
   }, [keyword]);
 
   useEffect(() => { load(); }, [load]);
