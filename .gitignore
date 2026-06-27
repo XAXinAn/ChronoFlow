@@ -38,4 +38,6 @@ db_backup/
 uploads/
 local.properties
 start-prod.sh
+XAXINAN.pem
+*.pem
 .git-rewrite/
