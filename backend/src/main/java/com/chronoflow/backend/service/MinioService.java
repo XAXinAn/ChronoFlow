@@ -48,7 +48,6 @@ public class MinioService {
                     "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::" + bucket + "/*\"]}]}"
                 ).build());
                 log.info("MinioService configured: endpoint={}, bucket={} (public-read)", endpoint, bucket);
-                log.info("MinioService configured: endpoint={}, bucket={}", endpoint, bucket);
             } catch (Exception e) {
                 log.error("Failed to initialize MinIO bucket: {}", e.getMessage());
                 configured = false;
