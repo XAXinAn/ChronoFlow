@@ -62,6 +62,8 @@ public class SecurityConfig {
                                 "/api/admin/login",
                                 "/api/app/version",
                                 "/admin/**",
+                                "/privacy/**",
+                                "/agreement/**",
                                 "/ChronoFlow-v1.1.0.apk",
                                 "/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
@@ -132,6 +134,10 @@ public class SecurityConfig {
             public void addViewControllers(ViewControllerRegistry registry) {
                 registry.addViewController("/admin").setViewName("forward:/admin/index.html");
                 registry.addViewController("/admin/").setViewName("forward:/admin/index.html");
+                registry.addViewController("/privacy").setViewName("forward:/privacy/index.html");
+                registry.addViewController("/privacy/").setViewName("forward:/privacy/index.html");
+                registry.addViewController("/agreement").setViewName("forward:/agreement/index.html");
+                registry.addViewController("/agreement/").setViewName("forward:/agreement/index.html");
             }
         };
     }
