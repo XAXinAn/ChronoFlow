@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -379,7 +380,13 @@ class _SplashPageState extends State<SplashPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_updateDownloadUrl.isNotEmpty) {
+              if (Platform.isIOS) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('App Store 版本即将上线，敬请期待')),
+                  );
+                }
+              } else if (_updateDownloadUrl.isNotEmpty) {
                 try {
                   await _launchUrl(_updateDownloadUrl);
                 } catch (_) {}

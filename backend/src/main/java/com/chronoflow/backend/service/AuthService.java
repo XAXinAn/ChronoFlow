@@ -130,7 +130,9 @@ public class AuthService {
         }
         User user = userService.findByPhone(request.getPhone());
         UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
-        return buildLoginResponse(user, userDetails);
+        LoginResponse response = buildLoginResponse(user, userDetails);
+        smsService.consumeCode(request.getPhone());
+        return response;
     }
 
     /**

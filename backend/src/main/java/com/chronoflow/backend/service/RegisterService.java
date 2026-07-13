@@ -98,6 +98,7 @@ public class RegisterService {
             throw new BusinessException("系统错误，请重试");
         }
 
+        smsService.consumeCode(request.getPhone());
         return certifyId;
     }
 

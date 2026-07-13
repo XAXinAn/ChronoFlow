@@ -135,12 +135,16 @@ public class SmsService {
             return false;
         }
 
-        if (storedCode.equals(code)) {
-            redisTemplate.delete(key);
-            return true;
-        }
+        return storedCode.equals(code);
+    }
 
-        return false;
+    /**
+     * Consume a verification code after successful business logic.
+     * Call this only after the entire flow (e.g. login/registration) succeeds.
+     */
+    public void consumeCode(String phone) {
+        String key = SMS_CODE_PREFIX + phone;
+        redisTemplate.delete(key);
     }
 
     /**
