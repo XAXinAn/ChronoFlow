@@ -44,7 +44,7 @@ public class UserController {
                 error.put("message", "该邮箱已被绑定");
                 return ResponseEntity.badRequest().body(error);
             }
-        } catch (UsernameNotFoundException ignored) {
+        } catch (BusinessException ignored) {
             // Email not found in system - this is expected, proceed with binding
         }
 
@@ -113,7 +113,7 @@ public class UserController {
                 error.put("message", "该手机号已被绑定");
                 return ResponseEntity.badRequest().body(error);
             }
-        } catch (UsernameNotFoundException ignored) {
+        } catch (BusinessException ignored) {
             // Phone not found in system - this is expected, proceed with binding
         }
 
@@ -125,6 +125,7 @@ public class UserController {
         }
 
         userService.bindPhone(userId, request.getPhone());
+        smsService.consumeCode(request.getPhone());
 
         User user = userService.findById(userId);
         Map<String, Object> result = new HashMap<>();

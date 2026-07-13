@@ -74,7 +74,7 @@ public class UserService implements UserDetailsService {
     public User findByEmail(String email) {
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
         if (user == null) {
-            throw new UsernameNotFoundException("用户不存在: " + email);
+            throw new BusinessException("该邮箱未注册");
         }
         return user;
     }
@@ -86,7 +86,7 @@ public class UserService implements UserDetailsService {
     public User findByPhone(String phone) {
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
         if (user == null) {
-            throw new UsernameNotFoundException("用户不存在: " + phone);
+            throw new BusinessException("该手机号未注册");
         }
         return user;
     }

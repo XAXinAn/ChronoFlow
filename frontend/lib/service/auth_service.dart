@@ -67,8 +67,19 @@ class AuthService {
       ApiClient.setUser(loginResponse);
       return loginResponse;
     } else {
-      throw Exception('验证码错误');
+      final String msg = _extractErrorMessage(response.body);
+      throw Exception(msg);
     }
+  }
+
+  String _extractErrorMessage(String body) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map && data.containsKey('message')) {
+        return data['message'].toString();
+      }
+    } catch (_) {}
+    return '验证码错误';
   }
 
   // 发送邮箱验证码
@@ -106,7 +117,8 @@ class AuthService {
       ApiClient.setUser(loginResponse);
       return loginResponse;
     } else {
-      throw Exception('验证码错误');
+      final String msg = _extractErrorMessage(response.body);
+      throw Exception(msg);
     }
   }
 
