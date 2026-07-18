@@ -63,3 +63,25 @@ aliyun:
     access-key-secret: ${ALIYUN_CLOUDAUTH_ACCESS_KEY_SECRET:}
     endpoint: ${ALIYUN_CLOUDAUTH_ENDPOINT:cloudauth.cn-shanghai.aliyuncs.com}
     scene-id: ${ALIYUN_CLOUDAUTH_SCENE_ID:}
+
+# ========================
+# MindFlow 配置
+# ========================
+mindflow:
+  spark:
+    api-key: ${SPARK_API_KEY:}
+    base-url: ${SPARK_API_BASE_URL:https://spark-api-open.xf-yun.com/v1}
+    model: ${SPARK_MODEL:spark-4.0}
+    temperature: ${SPARK_TEMPERATURE:0.7}
+  agent:
+    execution-timeout-ms: ${AGENT_EXECUTION_TIMEOUT_MS:30000}
+    intent-classify-timeout-ms: ${INTENT_CLASSIFY_TIMEOUT_MS:5000}
+  websearch:
+    enabled: ${WEBSEARCH_ENABLED:true}
+    timeout-ms: ${WEBSEARCH_TIMEOUT_MS:5000}
+  resource:
+    max-per-day: ${MAX_RESOURCE_GEN_PER_DAY:30}
+    cache-hours: ${RESOURCE_CACHE_HOURS:1}
+  milvus:
+    db-path: ${MILVUS_DB_PATH:/app/data/milvus_lite.db}
+    embedding-model: ${VECTOR_EMBEDDING_MODEL:text-embedding-v1}

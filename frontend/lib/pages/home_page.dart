@@ -17,6 +17,7 @@ import 'group/qr_scanner_page.dart';
 import 'group/group_page.dart';
 import 'group/notification_page.dart';
 import '../service/group_service.dart';
+import 'discover/discover_page.dart';
 
 class HomePage extends StatefulWidget {
   final LoginResponse loginResponse;
@@ -872,49 +873,11 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   Widget _buildDiscoverContent() {
-    return const SafeArea(
-      child: Center(
-        child: Text('敬请期待', style: TextStyle(color: Colors.black26, fontSize: 15)),
-      ),
-    );
+    return const DiscoverPage();
   }
 
   Widget _buildGroupContent() {
     return const GroupPage();
-  }
-
-  Widget _buildDiscoverItem(IconData icon, String label, {VoidCallback? onTap}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap ?? () {},
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 22, color: Colors.black54),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                ),
-                const Icon(Icons.chevron_right, size: 20, color: Colors.black26),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildProfileContent() {

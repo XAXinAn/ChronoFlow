@@ -1,14 +1,17 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 
 /// 应用常量配置
 class AppConstants {
   // API 配置 - 通过 --dart-define=BASE_URL=... 在构建时切换
-  // 模拟器：默认 10.0.2.2 → 宿主机 localhost
+  // 模拟器：自动使用 10.0.2.2 访问宿主机
   // 真机调试：--dart-define=BASE_URL=http://192.168.x.x:8080/api
-  static const String baseUrl = String.fromEnvironment(
-    'BASE_URL',
-    defaultValue: 'http://localhost:8080/api',
-  );
+  static String get baseUrl {
+    const configured = String.fromEnvironment('BASE_URL');
+    if (configured.isNotEmpty) return configured;
+    if (Platform.isAndroid) return 'http://10.0.2.2:8080/api';
+    return 'http://localhost:8080/api';
+  }
 
   // 主题色 - 黑白极简风格
   static const Color primaryColor = Color(0xFF000000);         // 黑色
