@@ -1,45 +1,40 @@
-﻿# ===== 鍏ㄥ眬 =====
-.idea/
-*.iml
-*.iws
-*.ipr
-.DS_Store
+﻿!backend/.env.example
+# ===== 发布/备份 =====
+# ===== 后端 =====
+# ===== 前端 =====
+# ===== 全局 =====
 **/.DS_Store
+*.iml
+*.ipr
+*.iws
+*.pem
+.DS_Store
+.git-rewrite/
+.idea/
 .vscode/
-
-# ===== 鍚庣 =====
-backend/target/
 backend/.env
 backend/.env.*
-!backend/.env.example
 backend/.mvn/wrapper/maven-wrapper.jar
-
-# ===== 鍓嶇 =====
+backend/target/
+db_backup/
 frontend/.dart_tool/
-frontend/build/
 frontend/.flutter-plugins-dependencies
-frontend/.pub-cache/
 frontend/.pub/
-frontend/coverage/
+frontend/.pub-cache/
 frontend/android/.gradle/
+frontend/android/app/chronoflow.keystore
 frontend/android/app/debug
+frontend/android/app/libs/*.aar
 frontend/android/app/profile
 frontend/android/app/release
-frontend/android/app/libs/*.aar
-frontend/ios/Runner/FaceVerifyPlugin.swift
-frontend/ios/Pods/
+frontend/build/
+frontend/coverage/
 frontend/ios/Flutter/.last_build_id
-start-prod.sh
-frontend/android/app/chronoflow.keystore
-frontend/android/app/chronoflow.keystore
-web/node_modules/
-
-# ===== 鍙戝竷/澶囦唤 =====
-release/
-db_backup/
-uploads/
+frontend/ios/Pods/
+frontend/ios/Runner/FaceVerifyPlugin.swift
 local.properties
+release/
 start-prod.sh
+uploads/
+web/node_modules/
 XAXINAN.pem
-*.pem
-.git-rewrite/
