@@ -28,7 +28,7 @@ public class PromptGuard {
 
     /** 黑名单：常见的 prompt 注入特征（中英文都覆盖） */
     private static final List<String> INJECTION_PATTERNS = List.of(
-            "忽略以上", "忽略之前", "忽略前面", "忽略上述",
+            "忽略以上", "忽略之前", "忽略前面", "忽略上述", "忽略上面",
             "ignore previous", "ignore above", "ignore all",
             "ignore the above", "disregard previous", "disregard above",
             "forget your instructions", "forget everything",
