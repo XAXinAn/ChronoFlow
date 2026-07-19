@@ -7,9 +7,12 @@ import lombok.Data;
 
 /**
  * 资源质量反馈请求 — POST /api/v1/resources/{id}/feedback。
+ *
+ * 原名 FeedbackRequest（在 mindflow/dto 下），与 ChronoFlow 的 FeedbackRequest
+ * （用户意见反馈）容易混淆。改名 ResourceFeedbackRequest 明确归属。
  */
 @Data
-public class FeedbackRequest {
+public class ResourceFeedbackRequest {
 
     /** 评分 1-5 */
     @NotNull(message = "评分不能为空")

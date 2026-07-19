@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 /**
  * 学习资源实体 — 存储AI生成的五类学习资源。
  * resource_type: DOC(讲解文档) / MINDMAP(思维导图) / QUIZ(练习题) / READING(拓展材料) / CODE(代码案例)
+ *
+ * 修复（vs HEAD）：
+ * - 加 version 字段（乐观锁版本号，防止并发更新冲突）
  */
 @Data
 @Builder
@@ -54,6 +57,14 @@ public class LearningResource {
     /** 是否已通过内容审核 */
     @TableField("reviewed")
     private Boolean reviewed;
+
+    /**
+     * 乐观锁版本号 — 每次更新 +1（MyBatis-Plus @Version 注解自动管理）
+     * 防止并发用户/Agent 同时修改同一资源导致数据错乱
+     */
+    @Version
+    @TableField("version")
+    private Integer version;
 
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

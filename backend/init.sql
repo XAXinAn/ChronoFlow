@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS learning_resource (
     metadata TEXT COMMENT '附加元数据（JSON格式）',
     confidence_score DECIMAL(3,2) DEFAULT 0.00 COMMENT 'AI生成置信度 0.00~1.00',
     reviewed TINYINT(1) DEFAULT 0 COMMENT '是否通过内容审核',
+    version INT DEFAULT 1 COMMENT '乐观锁版本号',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
     INDEX idx_session_id (session_id),

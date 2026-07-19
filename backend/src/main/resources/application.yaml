@@ -27,6 +27,14 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.slf4j.Slf4jImpl}
 
+
+# ========================
+# SSE / 异步请求超时配置
+# ========================
+spring.mvc.async:
+  request-timeout: 180000  # SSE 长连接超时 180s（防止恶意占用连接）
+  task:
+    timeout: 60s
 server:
   port: ${SERVER_PORT:8080}
   compression:
@@ -91,9 +99,9 @@ mindflow:
   resource:
     max-per-day: ${MAX_RESOURCE_GEN_PER_DAY:30}
     cache-hours: ${RESOURCE_CACHE_HOURS:1}
-  milvus:
-    db-path: ${MILVUS_DB_PATH:/app/data/milvus_lite.db}
-    embedding-model: ${VECTOR_EMBEDDING_MODEL:text-embedding-v1}
+  # milvus: (Milvus RAG 未启用，仅作为后续增强方向保留配置项)
+  #   db-path: ${MILVUS_DB_PATH:/app/data/milvus_lite.db}  # 向量数据库路径
+  #   embedding-model: ${VECTOR_EMBEDDING_MODEL:text-embedding-v1}  # Embedding 模型
 
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
@@ -109,3 +117,4 @@ minio:
 crypto:
   secret: ${CRYPTO_SECRET}
   iteration: ${CRYPTO_ITERATION:600000}
+

@@ -2,10 +2,12 @@ package com.chronoflow.backend.mindflow.controller;
 
 import com.chronoflow.backend.dto.ApiResponse;
 import com.chronoflow.backend.mindflow.agent.AgentEvent;
+import com.chronoflow.backend.mindflow.constant.MindFlowConstants;
 import com.chronoflow.backend.mindflow.dto.ChatRequest;
 import com.chronoflow.backend.mindflow.dto.MessageResponse;
 import com.chronoflow.backend.mindflow.dto.SessionResponse;
 import com.chronoflow.backend.mindflow.service.ChatService;
+import com.chronoflow.backend.service.RateLimiterService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,18 +16,23 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import java.time.Duration;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * 对话控制器 — MindFlow 对话系统的SSE流式接口。
+ * 对话控制器 — MindFlow 对话系统的 SSE 流式接口。
  *
  * 接口清单（设计文档 6.1 节）：
  * - POST /api/v1/chat/session     创建新会话
  * - GET  /api/v1/chat/sessions    会话列表
  * - GET  /api/v1/chat/session/{id}/messages  消息历史
  * - POST /api/v1/chat/message     发送消息（SSE）★ 核心接口
+ *
+ * 修复（vs HEAD）：
+ * - 加每分钟限流（防 API 滥用、降低 LLM 费用）
+ * - 加 ChatService.sendMessage 错误处理（统一格式）
  */
 @Slf4j
 @RestController
@@ -34,21 +41,24 @@ import java.util.Map;
 public class ChatController {
 
     private final ChatService chatService;
+    private final RateLimiterService rateLimiterService;
 
     /**
      * 创建新会话。
-     * POST /api/v1/chat/session
      */
     @PostMapping("/session")
     public ResponseEntity<ApiResponse<SessionResponse>> createSession(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
+        // 限流：每分钟最多 N 次创建会话
+        if (!rateLimiterService.tryAcquire(MindFlowConstants.RATE_LIMIT_KEY_CHAT_MINUTE + userId, MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE, java.time.Duration.ofSeconds(60))) {
+            return ResponseEntity.ok(ApiResponse.error(429, "请求过于频繁，请稍后再试"));
+        }
         SessionResponse session = chatService.createSession(userId);
         return ResponseEntity.ok(ApiResponse.success("会话创建成功", session));
     }
 
     /**
      * 获取会话列表。
-     * GET /api/v1/chat/sessions
      */
     @GetMapping("/sessions")
     public ResponseEntity<ApiResponse<List<SessionResponse>>> getSessions(HttpServletRequest request) {
@@ -59,7 +69,6 @@ public class ChatController {
 
     /**
      * 获取会话消息历史。
-     * GET /api/v1/chat/session/{id}/messages
      */
     @GetMapping("/session/{id}/messages")
     public ResponseEntity<ApiResponse<List<MessageResponse>>> getMessages(
@@ -69,15 +78,17 @@ public class ChatController {
     }
 
     /**
-     * 发送消息（SSE流式响应）— 核心接口。
-     * POST /api/v1/chat/message
+     * 发送消息（SSE 流式响应）— 核心接口。
+     *
+     * 限流策略：每分钟最多 N 次 sendMessage 调用（防 API 滥用）
      *
      * 返回 Server-Sent Events 流，事件类型包括：
-     * - TEXT: 逐字追加的AI回复文本
+     * - TEXT: 逐字追加的 AI 回复文本
      * - PROGRESS: 进度通知
      * - RESOURCE_CARD: 资源卡片
      * - PROFILE_CARD: 画像卡片
-     * - DIAGRAM: Mermaid图解
+     * - DIAGRAM: Mermaid 图解
+     * - WARNING: 警告（不中断流，如文本截断、缓存命中）
      * - ERROR: 错误信息
      * - COMPLETE: 完成通知
      */
@@ -87,31 +98,48 @@ public class ChatController {
             @Valid @RequestBody ChatRequest chatRequest) {
 
         Long userId = (Long) request.getAttribute("userId");
-        log.info("收到消息: userId={}, sessionId={}, message={}",
-                userId, chatRequest.getSessionId(), chatRequest.getMessage());
 
-        return chatService.sendMessage(userId, chatRequest.getSessionId(), chatRequest.getMessage())
-                .map(this::toSseEvent)
-                .doOnError(e -> log.error("SSE流异常: {}", e.getMessage(), e));
+        // 限流检查
+        if (!rateLimiterService.tryAcquire(MindFlowConstants.RATE_LIMIT_KEY_CHAT_MINUTE + userId, MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE, java.time.Duration.ofSeconds(60))) {
+            // 限流时返回单条 ERROR 事件（SSE 仍保持一致格式）
+            return Flux.just(Map.of(
+                    "type", "ERROR",
+                    "content", "请求过于频繁，请稍后再试（每分钟最多 " + MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE + " 次）",
+                    "retryable", false
+            ));
+        }
+
+        String sessionId = chatRequest.getSessionId();
+        String message = chatRequest.getMessage();
+
+        return chatService.sendMessage(userId, sessionId, message)
+                .map(this::agentEventToMap)
+                .onErrorResume(e -> {
+                    log.error("SSE 流异常: userId={}, error={}", userId, e.getMessage(), e);
+                    return Flux.just(Map.of(
+                            "type", "ERROR",
+                            "content", "服务异常：" + e.getMessage(),
+                            "retryable", true
+                    ));
+                });
     }
 
     /**
-     * 将AgentEvent转换为SSE事件Map。
+     * AgentEvent → Map（前端 JSON 序列化）
      */
-    private Map<String, Object> toSseEvent(AgentEvent event) {
+    private Map<String, Object> agentEventToMap(AgentEvent event) {
         Map<String, Object> map = new java.util.LinkedHashMap<>();
-        map.put("type", event.getType());
-        if (event.getContent() != null) map.put("content", event.getContent());
-        if (event.getStage() != null) map.put("stage", event.getStage());
-        if (event.getPercent() > 0) map.put("percent", event.getPercent());
+        if (event.getType() != null) map.put("type", event.getType());
         if (event.getAgent() != null) map.put("agent", event.getAgent());
+        if (event.getStage() != null) map.put("stage", event.getStage());
+        if (event.getContent() != null) map.put("content", event.getContent());
         if (event.getTitle() != null) map.put("title", event.getTitle());
-        if (event.getMermaid() != null) map.put("mermaid", event.getMermaid());
-        if (event.getCaption() != null) map.put("caption", event.getCaption());
         if (event.getSummary() != null) map.put("summary", event.getSummary());
-        if (event.getResources() != null) map.put("resources", event.getResources());
-        if (event.isRetryable()) map.put("retryable", true);
-        if (event.getExtra() != null) map.putAll(event.getExtra());
+        if (event.getExtra() != null) map.put("extra", event.getExtra());
+        if (event.getPercent() > 0) map.put("percent", event.getPercent());
+        map.put("retryable", event.isRetryable());
         return map;
     }
 }
+
+

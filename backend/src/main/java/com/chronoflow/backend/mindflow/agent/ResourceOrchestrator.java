@@ -1,16 +1,21 @@
 package com.chronoflow.backend.mindflow.agent;
 
 import com.chronoflow.backend.mindflow.config.MindFlowConfig;
+import com.chronoflow.backend.mindflow.constant.AgentEventType;
 import com.chronoflow.backend.mindflow.entity.LearningResource;
 import com.chronoflow.backend.mindflow.mapper.LearningResourceMapper;
+import com.chronoflow.backend.mindflow.review.MindFlowReviewService;
 import com.chronoflow.backend.mindflow.tool.WebSearchTool;
+import com.chronoflow.backend.mindflow.util.PromptGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 资源生成编排器（P0核心）— 协调5个子Agent并行生成学习资源。
@@ -22,6 +27,12 @@ import java.util.*;
  * Phase 4: 审核+持久化 — ContentModerationService → MySQL + MinIO
  *
  * 约束：单类资源 ≤ 30s，5类完整 ≤ 3min
+ *
+ * 修复（vs HEAD）：
+ * - 实例字段 bug：resourceContentMap/TitleMap 改为 ctx 属性（防并发用户覆盖）
+ * - 安全：调用 PromptGuard 校验用户输入
+ * - 内容审核：AI 生成内容入库前调用 MindFlowReviewService
+ * - 错误恢复：每个子Agent 失败不中断其他 Agent，最终汇总错误信息
  */
 @Slf4j
 @Component
@@ -31,6 +42,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
     private final WebSearchTool webSearchTool;
     private final MindFlowConfig config;
     private final LearningResourceMapper resourceMapper;
+    private final MindFlowReviewService reviewService;
 
     // 5个子Agent（构造函数注入）
     private final DocAgent docAgent;
@@ -55,19 +67,29 @@ public class ResourceOrchestrator implements MindFlowAgent {
 
     @Override
     public Flux<AgentEvent> execute(AgentContext ctx) {
-        log.info("ResourceOrchestrator 开始资源生成: topic={}", ctx.getUserMessage());
+        log.info("ResourceOrchestrator 开始资源生成: userId={}, topic={}", ctx.getUserId(), ctx.getUserMessage());
+
+        // 安全校验：检查用户输入
+        try {
+            PromptGuard.validate(ctx.getUserMessage());
+            reviewService.reviewUserInput(ctx.getUserMessage());
+        } catch (Exception e) {
+            log.warn("用户输入未通过校验: {}", e.getMessage());
+            return Flux.just(AgentEvent.builder()
+                    .type(AgentEventType.ERROR.getCode())
+                    .content("输入未通过安全检查：" + e.getMessage())
+                    .retryable(false)
+                    .build());
+        }
+
+        // 初始化 ctx 的累积 Map（每个请求独立，避免并发用户数据互相覆盖）
+        ctx.setResourceContentMap(new ConcurrentHashMap<>());
+        ctx.setResourceTitleMap(new ConcurrentHashMap<>());
 
         return Flux.concat(
-                // Phase 1: 知识点细化
                 phase1Refine(ctx),
-
-                // Phase 2: 联网检索
                 phase2Search(ctx),
-
-                // Phase 3: 并行生成（5个子Agent）
                 phase3Generate(ctx),
-
-                // Phase 4: 持久化 + 完成
                 phase4Persist(ctx)
         );
     }
@@ -78,13 +100,13 @@ public class ResourceOrchestrator implements MindFlowAgent {
     private Flux<AgentEvent> phase1Refine(AgentContext ctx) {
         return Flux.concat(
                 Flux.just(AgentEvent.builder()
-                        .type("PROGRESS")
+                        .type(AgentEventType.PROGRESS.getCode())
                         .stage("refine")
                         .content("正在分析知识点结构...")
                         .percent(0.05)
                         .build()),
                 Flux.just(AgentEvent.builder()
-                        .type("PROGRESS")
+                        .type(AgentEventType.PROGRESS.getCode())
                         .stage("refine_done")
                         .content("知识点分析完成：正在为您生成 " + ctx.getUserMessage() + " 的学习资料")
                         .percent(0.1)
@@ -98,7 +120,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
     private Flux<AgentEvent> phase2Search(AgentContext ctx) {
         if (!config.getWebsearch().isEnabled()) {
             return Flux.just(AgentEvent.builder()
-                    .type("PROGRESS")
+                    .type(AgentEventType.PROGRESS.getCode())
                     .stage("search_skip")
                     .content("联网检索已禁用，基于知识库生成")
                     .percent(0.15)
@@ -110,7 +132,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
                 String searchResult = webSearchTool.search(ctx.getUserMessage());
                 ctx.setResolvedParams(searchResult);
                 return Flux.just(AgentEvent.builder()
-                        .type("PROGRESS")
+                        .type(AgentEventType.PROGRESS.getCode())
                         .stage("search_done")
                         .content("已检索最新资料，开始生成学习资源...")
                         .percent(0.2)
@@ -118,7 +140,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
             } catch (Exception e) {
                 log.warn("WebSearch超时，跳过检索继续生成: {}", e.getMessage());
                 return Flux.just(AgentEvent.builder()
-                        .type("PROGRESS")
+                        .type(AgentEventType.WARNING.getCode())
                         .stage("search_fallback")
                         .content("联网检索超时，基于知识库生成")
                         .percent(0.2)
@@ -127,13 +149,10 @@ public class ResourceOrchestrator implements MindFlowAgent {
         });
     }
 
-    // 累积每个子Agent生成的内容（agentName → title + content）
-    private final Map<String, String> resourceContentMap = new LinkedHashMap<>();
-    private final Map<String, String> resourceTitleMap = new LinkedHashMap<>();
-
     /**
-     * Phase 3: 5个子Agent并行生成（使用Flux.merge并行订阅）。
-     * 同时累积每个Agent的TEXT内容，用于后续持久化到learning_resource表。
+     * Phase 3: 5个子Agent并行生成（Flux.merge 真正并行）。
+     * 每个子Agent失败被独立捕获，不影响其他 Agent。
+     * 累积数据存到 ctx 的 map 中（每个请求独立）。
      */
     private Flux<AgentEvent> phase3Generate(AgentContext ctx) {
         String[] typeNames = {"讲解文档", "思维导图", "练习题", "拓展材料", "代码案例"};
@@ -142,36 +161,41 @@ public class ResourceOrchestrator implements MindFlowAgent {
         MindFlowAgent[] agents = {docAgent, mindMapAgent, quizAgent, readingAgent, codeAgent};
 
         List<Flux<AgentEvent>> agentFluxes = new ArrayList<>();
+        List<String> failedAgents = Collections.synchronizedList(new ArrayList<>());
+
         for (int i = 0; i < agents.length; i++) {
             final int idx = i;
             final MindFlowAgent agent = agents[idx];
+            final String agentName = agent.getClass().getSimpleName();
+            final String typeName = typeNames[idx];
 
             Flux<AgentEvent> agentFlux = Flux.just(AgentEvent.builder()
-                            .type("PROGRESS")
+                            .type(AgentEventType.PROGRESS.getCode())
                             .stage("generating_" + agent.getIntentLabel())
-                            .content("正在生成" + typeNames[idx] + "...")
+                            .content("正在生成" + typeName + "...")
                             .percent(progressSteps[idx])
                             .build())
                     .concatWith(agent.execute(ctx)
                             .doOnNext(event -> {
-                                // 捕获RESOURCE_CARD的标题，累积TEXT内容（用event.agent标记，避免并行覆盖）
-                                if ("RESOURCE_CARD".equals(event.getType())) {
-                                    String agentName = event.getAgent();
-                                    if (agentName != null && event.getTitle() != null) {
-                                        resourceTitleMap.put(agentName, event.getTitle());
-                                        resourceContentMap.put(agentName, "");
+                                // 累积数据到 ctx（线程安全）
+                                if (AgentEventType.RESOURCE_CARD.getCode().equals(event.getType())) {
+                                    if (event.getTitle() != null) {
+                                        ctx.getResourceTitleMap().put(agentName, event.getTitle());
+                                        ctx.getResourceContentMap().put(agentName, "");
                                     }
-                                } else if ("TEXT".equals(event.getType()) && event.getAgent() != null) {
-                                    resourceContentMap.merge(event.getAgent(),
+                                } else if (AgentEventType.TEXT.getCode().equals(event.getType()) && event.getAgent() != null) {
+                                    ctx.getResourceContentMap().merge(event.getAgent(),
                                             event.getContent() != null ? event.getContent() : "",
                                             String::concat);
                                 }
                             })
                             .onErrorResume(e -> {
-                                log.error("{} 生成失败: {}", typeNames[idx], e.getMessage());
+                                // 单个 Agent 失败 — 记录但不中断
+                                log.error("{} 生成失败: {}", typeName, e.getMessage());
+                                failedAgents.add(typeName);
                                 return Flux.just(AgentEvent.builder()
-                                        .type("ERROR")
-                                        .content(typeNames[idx] + "生成失败: " + e.getMessage())
+                                        .type(AgentEventType.ERROR.getCode())
+                                        .content(typeName + "生成失败: " + e.getMessage())
                                         .retryable(true)
                                         .build());
                             })
@@ -181,26 +205,42 @@ public class ResourceOrchestrator implements MindFlowAgent {
 
         return Flux.merge(agentFluxes)
                 .timeout(java.time.Duration.ofMillis(config.getAgent().getExecutionTimeoutMs()))
-                .onErrorResume(e -> {
-                    log.error("并行生成超时或失败: {}", e.getMessage());
-                    return Flux.just(AgentEvent.builder()
-                            .type("ERROR")
-                            .content("部分资源生成超时，已生成的内容将展示")
-                            .retryable(true)
-                            .build());
-                });
+                .concatWith(Flux.defer(() -> {
+                    // 全部完成后，emit 一个汇总警告（如果有失败）
+                    if (!failedAgents.isEmpty()) {
+                        log.warn("部分资源生成失败: {}", String.join(", ", failedAgents));
+                        return Flux.just(AgentEvent.builder()
+                                .type(AgentEventType.WARNING.getCode())
+                                .stage("partial_failure")
+                                .content("已完成 " + (agents.length - failedAgents.size()) + "/" + agents.length
+                                        + " 类资源。失败类型: " + String.join(", ", failedAgents))
+                                .percent(0.9)
+                                .build());
+                    }
+                    return Flux.empty();
+                }));
     }
 
     /**
      * Phase 4: 持久化资源 + 完成通知。
+     * 每个资源入库前调用 MindFlowReviewService。
      */
     private Flux<AgentEvent> phase4Persist(AgentContext ctx) {
-        // 将累积的资源写入 learning_resource 表
-        resourceContentMap.forEach((agentName, content) -> {
+        Map<String, String> contentMap = ctx.getResourceContentMap();
+        Map<String, String> titleMap = ctx.getResourceTitleMap();
+
+        List<String> savedTypes = new ArrayList<>();
+        List<String> rejectedTypes = new ArrayList<>();
+
+        contentMap.forEach((agentName, content) -> {
             if (content != null && !content.isEmpty()) {
                 String type = AGENT_TYPE_MAP.getOrDefault(agentName, agentName);
-                String title = resourceTitleMap.getOrDefault(agentName, "学习资源");
+                String title = titleMap.getOrDefault(agentName, "学习资源");
+
                 try {
+                    // 内容审核（AI 生成的内容）
+                    reviewService.reviewGeneratedContent(content, type);
+
                     LearningResource resource = LearningResource.builder()
                             .userId(ctx.getUserId())
                             .sessionId(ctx.getSessionId())
@@ -208,29 +248,40 @@ public class ResourceOrchestrator implements MindFlowAgent {
                             .title(title)
                             .content(content)
                             .confidenceScore(new BigDecimal("0.85"))
-                            .reviewed(false)
+                            .reviewed(true)
+                            .version(1)
                             .build();
                     resourceMapper.insert(resource);
+                    savedTypes.add(type);
                     log.info("资源已保存: type={}, title={}, id={}", type, title, resource.getId());
                 } catch (Exception e) {
-                    log.error("保存资源失败: {}", e.getMessage());
+                    log.warn("保存资源失败: type={}, reason={}", type, e.getMessage());
+                    rejectedTypes.add(type);
                 }
             }
         });
-        // 清理累积数据
-        resourceContentMap.clear();
-        resourceTitleMap.clear();
+
+        // 清理 ctx 累积数据
+        contentMap.clear();
+        titleMap.clear();
+
+        String summary;
+        if (rejectedTypes.isEmpty()) {
+            summary = "全部学习资源生成完成！请在「我的云盘」中查看。";
+        } else {
+            summary = "已保存 " + savedTypes.size() + " 类资源，" + rejectedTypes.size() + " 类因审核未通过被拒绝";
+        }
 
         return Flux.just(
                 AgentEvent.builder()
-                        .type("PROGRESS")
+                        .type(AgentEventType.PROGRESS.getCode())
                         .stage("persist")
                         .content("资源保存完成")
                         .percent(0.95)
                         .build(),
                 AgentEvent.builder()
-                        .type("COMPLETE")
-                        .summary("全部学习资源生成完成！请在「我的云盘」中查看。")
+                        .type(AgentEventType.COMPLETE.getCode())
+                        .summary(summary)
                         .build()
         );
     }

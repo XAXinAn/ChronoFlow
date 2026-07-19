@@ -2,7 +2,7 @@ package com.chronoflow.backend.mindflow.controller;
 
 import com.chronoflow.backend.dto.ApiResponse;
 import com.chronoflow.backend.mindflow.agent.AgentEvent;
-import com.chronoflow.backend.mindflow.dto.FeedbackRequest;
+import com.chronoflow.backend.mindflow.dto.ResourceFeedbackRequest;
 import com.chronoflow.backend.mindflow.dto.ResourceRequest;
 import com.chronoflow.backend.mindflow.dto.ResourceResponse;
 import com.chronoflow.backend.mindflow.service.ResourceService;
@@ -88,7 +88,7 @@ public class ResourceController {
     @PostMapping("/{id}/feedback")
     public ResponseEntity<ApiResponse<Void>> submitFeedback(
             @PathVariable Long id,
-            @Valid @RequestBody FeedbackRequest feedback) {
+            @Valid @RequestBody ResourceFeedbackRequest feedback) {
 
         resourceService.submitFeedback(id, feedback.getRating(), feedback.getComment());
         return ResponseEntity.ok(ApiResponse.success("反馈提交成功", null));

@@ -1,6 +1,8 @@
 package com.chronoflow.backend.mindflow.agent;
 
+import com.chronoflow.backend.mindflow.constant.AgentEventType;
 import com.chronoflow.backend.mindflow.service.SparkApiService;
+import com.chronoflow.backend.mindflow.util.PromptGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,6 +10,10 @@ import reactor.core.publisher.Flux;
 
 /**
  * 代码案例生成Agent — 生成场景说明、分步实现、完整代码、扩展挑战（Markdown+代码块格式）。
+ *
+ * 安全特性：
+ * - 用户输入经 PromptGuard 校验（防 prompt 注入）
+ * - 用户输入用 XML 标签包裹
  *
  * 输出结构：应用场景 → 分步实现 → 完整代码 → 扩展思考
  * 个性化参数：知识基础决定注释密度（入门→逐行注释，进阶→关键注释，熟练→核心逻辑注释）
@@ -26,7 +32,8 @@ public class CodeAgent implements MindFlowAgent {
 
     @Override
     public Flux<AgentEvent> execute(AgentContext ctx) {
-        String topic = ctx.getUserMessage();
+        String rawTopic = ctx.getUserMessage();
+        String topic = PromptGuard.sanitize(rawTopic);
 
         String prompt = String.format("""
                 请为知识点「%s」生成一个代码实践案例。
@@ -48,12 +55,18 @@ public class CodeAgent implements MindFlowAgent {
 
         return sparkApiService.chatStream("你是一位资深编程导师，擅长通过代码实践帮助学习者理解抽象概念。",
                 java.util.List.of(java.util.Map.of("role", "user", "content", prompt)))
-                .map(text -> AgentEvent.builder().agent("CodeAgent").type("TEXT").content(text).build())
+                .map(text -> AgentEvent.builder().agent("CodeAgent").type(AgentEventType.TEXT.getCode()).content(text).build())
                 .startWith(AgentEvent.builder()
-                        .type("RESOURCE_CARD")
+                        .type(AgentEventType.RESOURCE_CARD.getCode())
                         .agent("CodeAgent")
-                        .title("💻 代码案例 - " + topic)
+                        .title("\uD83D\uDCBB 代码案例 - " + sanitizeForTitle(rawTopic))
                         .content("")
                         .build());
+    }
+
+    private String sanitizeForTitle(String s) {
+        if (s == null) return "未命名";
+        String cleaned = s.replaceAll("[\\x00-\\x1F]", "").trim();
+        return cleaned.length() > 50 ? cleaned.substring(0, 50) + "..." : cleaned;
     }
 }

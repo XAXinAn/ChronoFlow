@@ -1,6 +1,8 @@
 package com.chronoflow.backend.mindflow.agent;
 
+import com.chronoflow.backend.mindflow.constant.AgentEventType;
 import com.chronoflow.backend.mindflow.service.SparkApiService;
+import com.chronoflow.backend.mindflow.util.PromptGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,6 +10,10 @@ import reactor.core.publisher.Flux;
 
 /**
  * 练习题生成Agent — 生成选择题、填空题、简答题及详细解析（Markdown格式）。
+ *
+ * 安全特性：
+ * - 用户输入经 PromptGuard 校验（防 prompt 注入）
+ * - 用户输入用 XML 标签包裹
  *
  * 输出：选择题(4选项) + 填空题 + 简答题，每题含解析。
  * 个性化参数：知识基础决定难度（基础→基础题，进阶→综合题，熟练→挑战题）
@@ -26,7 +32,8 @@ public class QuizAgent implements MindFlowAgent {
 
     @Override
     public Flux<AgentEvent> execute(AgentContext ctx) {
-        String topic = ctx.getUserMessage();
+        String rawTopic = ctx.getUserMessage();
+        String topic = PromptGuard.sanitize(rawTopic);
 
         String prompt = String.format("""
                 请为知识点「%s」生成一套练习题。
@@ -50,12 +57,18 @@ public class QuizAgent implements MindFlowAgent {
 
         return sparkApiService.chatStream("你是一位经验丰富的教育评估专家，擅长编写高质量的练习题。",
                 java.util.List.of(java.util.Map.of("role", "user", "content", prompt)))
-                .map(text -> AgentEvent.builder().agent("QuizAgent").type("TEXT").content(text).build())
+                .map(text -> AgentEvent.builder().agent("QuizAgent").type(AgentEventType.TEXT.getCode()).content(text).build())
                 .startWith(AgentEvent.builder()
-                        .type("RESOURCE_CARD")
+                        .type(AgentEventType.RESOURCE_CARD.getCode())
                         .agent("QuizAgent")
-                        .title("📝 练习题 - " + topic)
+                        .title("\uD83D\uDCDD 练习题 - " + sanitizeForTitle(rawTopic))
                         .content("")
                         .build());
+    }
+
+    private String sanitizeForTitle(String s) {
+        if (s == null) return "未命名";
+        String cleaned = s.replaceAll("[\\x00-\\x1F]", "").trim();
+        return cleaned.length() > 50 ? cleaned.substring(0, 50) + "..." : cleaned;
     }
 }

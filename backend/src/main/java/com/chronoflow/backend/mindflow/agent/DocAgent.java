@@ -1,6 +1,8 @@
 package com.chronoflow.backend.mindflow.agent;
 
+import com.chronoflow.backend.mindflow.constant.AgentEventType;
 import com.chronoflow.backend.mindflow.service.SparkApiService;
+import com.chronoflow.backend.mindflow.util.PromptGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -8,6 +10,10 @@ import reactor.core.publisher.Flux;
 
 /**
  * 讲解文档生成Agent — 生成知识点的结构化讲解文档（Markdown格式）。
+ *
+ * 安全特性：
+ * - 用户输入经 PromptGuard 校验（防 prompt 注入）
+ * - 用户输入用 XML 标签包裹（明确边界，防止混淆系统指令）
  *
  * 输出结构：概念引入 → 核心讲解 → 示例说明 → 常见误区 → 小结
  * 个性化参数：认知风格决定举例方式（visual用图示/verbal用类比/logical用推导/hands-on用实践）
@@ -26,7 +32,9 @@ public class DocAgent implements MindFlowAgent {
 
     @Override
     public Flux<AgentEvent> execute(AgentContext ctx) {
-        String topic = ctx.getUserMessage();
+        String rawTopic = ctx.getUserMessage();
+        // 安全清洗：检测注入 + XML 包裹
+        String topic = PromptGuard.sanitize(rawTopic);
         String searchContext = ctx.getResolvedParams() != null ? ctx.getResolvedParams() : "";
 
         String prompt = String.format("""
@@ -47,12 +55,19 @@ public class DocAgent implements MindFlowAgent {
 
         return sparkApiService.chatStream("你是一位专业的教育内容创作者，擅长编写清晰易懂的讲解文档。",
                 java.util.List.of(java.util.Map.of("role", "user", "content", prompt)))
-                .map(text -> AgentEvent.builder().agent("DocAgent").type("TEXT").content(text).build())
+                .map(text -> AgentEvent.builder().agent("DocAgent").type(AgentEventType.TEXT.getCode()).content(text).build())
                 .startWith(AgentEvent.builder()
-                        .type("RESOURCE_CARD")
+                        .type(AgentEventType.RESOURCE_CARD.getCode())
                         .agent("DocAgent")
-                        .title("📄 讲解文档 - " + topic)
+                        .title("\uD83D\uDCC4 讲解文档 - " + sanitizeForTitle(rawTopic))
                         .content("")
                         .build());
+    }
+
+    /** 标题清洗（防止超长或包含控制字符） */
+    private String sanitizeForTitle(String s) {
+        if (s == null) return "未命名";
+        String cleaned = s.replaceAll("[\\x00-\\x1F]", "").trim();
+        return cleaned.length() > 50 ? cleaned.substring(0, 50) + "..." : cleaned;
     }
 }
