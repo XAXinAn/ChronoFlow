@@ -130,7 +130,9 @@ public class AuthService {
         }
         User user = userService.findByPhone(request.getPhone());
         UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
-        return buildLoginResponse(user, userDetails);
+        LoginResponse response = buildLoginResponse(user, userDetails);
+        smsService.consumeCode(request.getPhone());
+        return response;
     }
 
     /**
@@ -166,7 +168,7 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .riskRequired(false)
+                                .riskRequired(false)
                 .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
                 .realName(user.getRealName())
                 .build();
@@ -216,7 +218,7 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
+                                .realNameVerified(user.getRealNameVerified() != null && user.getRealNameVerified())
                 .realName(user.getRealName())
                 .build();
     }

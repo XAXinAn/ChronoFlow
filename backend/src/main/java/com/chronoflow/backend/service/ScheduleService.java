@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import java.util.stream.Collectors;
@@ -81,13 +82,12 @@ public class ScheduleService {
 
         // Save publish targets
         if (request.getPublishTargetGroupIds() != null && !request.getPublishTargetGroupIds().isEmpty()) {
+            // Cache descendant lookup outside the loop to avoid repeated recursive DB queries
+            List<String> descendantIds = groupService.getDescendantGroupIds(groupId);
             for (String targetGroupId : request.getPublishTargetGroupIds()) {
                 // Verify target is a descendant of this group
-                if (!groupId.equals(targetGroupId)) {
-                    List<String> descendantIds = groupService.getDescendantGroupIds(groupId);
-                    if (!descendantIds.contains(targetGroupId)) {
-                        throw new BusinessException("下发目标群组必须是当前群组的子孙群组");
-                    }
+                if (!groupId.equals(targetGroupId) && !descendantIds.contains(targetGroupId)) {
+                    throw new BusinessException("下发目标群组必须是当前群组的子孙群组");
                 }
                 SchedulePublishTarget target = new SchedulePublishTarget();
                 target.setScheduleId(schedule.getId());
@@ -139,6 +139,18 @@ public class ScheduleService {
 
         scheduleMapper.updateById(schedule);
 
+        // Update publish targets if provided
+        if (request.getPublishTargetGroupIds() != null) {
+            publishTargetMapper.delete(
+                    new QueryWrapper<SchedulePublishTarget>().eq("schedule_id", scheduleId));
+            for (String targetGroupId : request.getPublishTargetGroupIds()) {
+                SchedulePublishTarget target = new SchedulePublishTarget();
+                target.setScheduleId(scheduleId);
+                target.setTargetGroupId(targetGroupId);
+                publishTargetMapper.insert(target);
+            }
+        }
+
         String groupName = null;
         if (schedule.getGroupId() != null) {
             Group group = groupMapper.selectById(schedule.getGroupId());
@@ -168,6 +180,9 @@ public class ScheduleService {
             }
         }
 
+        // Clean up publish targets first to avoid orphan data
+        publishTargetMapper.delete(
+                new QueryWrapper<SchedulePublishTarget>().eq("schedule_id", scheduleId));
         scheduleMapper.deleteById(scheduleId);
     }
 
@@ -440,7 +455,7 @@ public class ScheduleService {
     }
 
     private boolean isCreatorOrAdmin(Long userId, Group group) {
-        if (group.getCreatorId().equals(userId)) {
+        if (Objects.equals(group.getCreatorId(), userId)) {
             return true;
         }
         return groupService.isAdmin(group.getId(), userId);

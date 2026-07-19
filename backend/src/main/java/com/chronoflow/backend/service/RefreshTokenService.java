@@ -45,6 +45,12 @@ public class RefreshTokenService {
         }
         String username = jwtTokenProvider.extractUsername(refreshToken);
         var user = userService.findByUsername(username);
+        // Check if the token family has been invalidated (reuse detection)
+        String jti = jwtTokenProvider.extractJti(refreshToken);
+        if (jti != null && isTokenFamilyInvalid(user.getId(), jti)) {
+            log.warn("Rejected refresh token from invalidated family: userId={}", user.getId());
+            return false;
+        }
         String key = REFRESH_TOKEN_PREFIX + user.getId();
         String storedToken = redisTemplate.opsForValue().get(key);
         return refreshToken.equals(storedToken);

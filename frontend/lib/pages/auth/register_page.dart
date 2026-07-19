@@ -1,4 +1,5 @@
 import '../../widgets/chrono_input_field.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../service/auth_service.dart';
 import '../../service/face_verify_bridge.dart';
@@ -145,12 +146,23 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      // Step 1: Get MetaInfo from face SDK (stub for now)
+      // Step 1: Get MetaInfo from face SDK
       String metaInfo;
       try {
         metaInfo = await _getMetaInfo();
+        if (metaInfo.isEmpty) {
+          if (kDebugMode) {
+            metaInfo = '{}';
+          } else {
+            throw Exception('获取认证信息失败');
+          }
+        }
       } catch (e) {
-        metaInfo = ''; // fallback: allow empty metaInfo during development
+        if (kDebugMode) {
+          metaInfo = '{}';
+        } else {
+          rethrow;
+        }
       }
 
       // Step 2: Send registration data to backend, get certifyId

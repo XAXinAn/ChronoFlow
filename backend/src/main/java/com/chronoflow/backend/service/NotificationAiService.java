@@ -14,6 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import java.util.List;
 
@@ -92,8 +96,27 @@ public class NotificationAiService {
                     .outputSchema(OUTPUT_SCHEMA)
                     .build();
             agent.setSystemPrompt(promptText);
-            AssistantMessage response = agent.call(new UserMessage(ocrText));
-            String resultJson = response.getText();
+
+            // Wrap AI call with timeout to prevent indefinite blocking
+            CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    AssistantMessage response = agent.call(new UserMessage(ocrText));
+                    return response.getText();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            String resultJson;
+            try {
+                resultJson = future.get(60, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                throw new BusinessException("AI服务响应超时，请稍后重试");
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof BusinessException) throw (BusinessException) cause;
+                throw new BusinessException("AI服务调用异常: " + cause.getMessage(), e);
+            }
 
             LocalDateTime endTime = LocalDateTime.now();
             String endTimeStr = endTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
@@ -102,6 +125,8 @@ public class NotificationAiService {
             log.info("[AI响应内容] {}", resultJson);
 
             return parseJsonResult(resultJson);
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             LocalDateTime errorTime = LocalDateTime.now();
             String errorTimeStr = errorTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));

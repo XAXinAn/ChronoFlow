@@ -1,4 +1,5 @@
-import 'dart:convert';
+﻿import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -36,7 +37,7 @@ class _SplashPageState extends State<SplashPage> {
     await AuthService.loadStoredAuth();
     if (!mounted) return;
 
-    // 从服务器同步最新的用户信息（实名认证状态等）
+    // 浠庢湇鍔″櫒鍚屾鏈€鏂扮殑鐢ㄦ埛淇℃伅锛堝疄鍚嶈璇佺姸鎬佺瓑锛?
     if (AuthService.currentUser != null) {
       try { await AuthService().refreshUserInfo(); } catch (_) {}
     }
@@ -118,7 +119,7 @@ class _SplashPageState extends State<SplashPage> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  '隐私政策与用户协议',
+                  '闅愮鏀跨瓥涓庣敤鎴峰崗璁?,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -130,19 +131,19 @@ class _SplashPageState extends State<SplashPage> {
                   text: TextSpan(
                     style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.5),
                     children: [
-                      const TextSpan(text: '欢迎您使用时纪流！\n\n在您使用我们的服务之前，请阅读并同意以下内容：'),
+                      const TextSpan(text: '娆㈣繋鎮ㄤ娇鐢ㄦ椂绾祦锛乗n\n鍦ㄦ偍浣跨敤鎴戜滑鐨勬湇鍔′箣鍓嶏紝璇烽槄璇诲苟鍚屾剰浠ヤ笅鍐呭锛?),
                       TextSpan(
-                        text: '《隐私政策》',
+                        text: '銆婇殣绉佹斂绛栥€?,
                         style: const TextStyle(fontSize: 14, color: Colors.blue, decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()..onTap = () => _showFullPolicy('privacy'),
                       ),
-                      const TextSpan(text: '说明我们如何收集、使用和保护您的个人信息，'),
+                      const TextSpan(text: '璇存槑鎴戜滑濡備綍鏀堕泦銆佷娇鐢ㄥ拰淇濇姢鎮ㄧ殑涓汉淇℃伅锛?),
                       TextSpan(
-                        text: '《用户协议》',
+                        text: '銆婄敤鎴峰崗璁€?,
                         style: const TextStyle(fontSize: 14, color: Colors.blue, decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()..onTap = () => _showFullPolicy('agreement'),
                       ),
-                      const TextSpan(text: '说明您使用本应用的服务条款和规则。\n\n如您同意，请点击"同意"按钮继续使用。'),
+                      const TextSpan(text: '璇存槑鎮ㄤ娇鐢ㄦ湰搴旂敤鐨勬湇鍔℃潯娆惧拰瑙勫垯銆俓n\n濡傛偍鍚屾剰锛岃鐐瑰嚮"鍚屾剰"鎸夐挳缁х画浣跨敤銆?),
                     ],
                   ),
                 ),
@@ -166,7 +167,7 @@ class _SplashPageState extends State<SplashPage> {
                       elevation: 0,
                     ),
                     child: const Text(
-                      '同意',
+                      '鍚屾剰',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -180,26 +181,26 @@ class _SplashPageState extends State<SplashPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        title: const Text('提示'),
-                        content: const Text('您需要同意隐私政策和用户协议才能使用本应用。'),
+                        title: const Text('鎻愮ず'),
+                        content: const Text('鎮ㄩ渶瑕佸悓鎰忛殣绉佹斂绛栧拰鐢ㄦ埛鍗忚鎵嶈兘浣跨敤鏈簲鐢ㄣ€?),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('返回'),
+                            child: const Text('杩斿洖'),
                           ),
                           TextButton(
                             onPressed: () {
                               Navigator.pop(ctx);
                               SystemNavigator.pop();
                             },
-                            child: const Text('退出'),
+                            child: const Text('閫€鍑?),
                           ),
                         ],
                       ),
                     );
                   },
                   child: const Text(
-                    '不同意',
+                    '涓嶅悓鎰?,
                     style: TextStyle(
                       color: Colors.black38,
                       fontSize: 14,
@@ -321,6 +322,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   static const int _currentVersionCode = 2;
+  static const int _currentVersionCode = 4;
   String _newVersion = '';
   String _updateDownloadUrl = '';
 
@@ -341,6 +343,10 @@ class _SplashPageState extends State<SplashPage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final serverVersionCode = (data['versionCode'] as num?)?.toInt() ?? 1;
+        final versionCodeRaw = data['versionCode'];
+        final serverVersionCode = versionCodeRaw is int
+            ? versionCodeRaw
+            : (versionCodeRaw is String ? int.tryParse(versionCodeRaw) : null) ?? 1;
         if (serverVersionCode > _currentVersionCode) {
           _updateDownloadUrl = data['downloadUrl'] as String? ?? '';
           _newVersion = data['version'] as String? ?? '';
@@ -364,19 +370,26 @@ class _SplashPageState extends State<SplashPage> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('发现新版本 $_newVersion'),
-        content: const Text('有新版本可用，请更新后使用'),
+        title: Text('鍙戠幇鏂扮増鏈?$_newVersion'),
+        content: const Text('鏈夋柊鐗堟湰鍙敤锛岃鏇存柊鍚庝娇鐢?),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _continueToApp();
             },
-            child: const Text('稍后更新'),
+            child: const Text('绋嶅悗鏇存柊'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (_updateDownloadUrl.isNotEmpty) {
+              if (Platform.isIOS) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('App Store 鐗堟湰鍗冲皢涓婄嚎锛屾暚璇锋湡寰?)),
+                  );
+                }
+              } else if (_updateDownloadUrl.isNotEmpty) {
                 try {
                   await _launchUrl(_updateDownloadUrl);
                 } catch (_) {}
@@ -384,7 +397,7 @@ class _SplashPageState extends State<SplashPage> {
               if (ctx.mounted) Navigator.pop(ctx);
               _continueToApp();
             },
-            child: const Text('立即更新'),
+            child: const Text('绔嬪嵆鏇存柊'),
           ),
         ],
       ),

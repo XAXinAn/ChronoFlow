@@ -42,7 +42,7 @@ class Schedule {
       description: json['description'] ?? '',
       location: json['location'] ?? '',
       time: DateTime.tryParse(json['time'] ?? '') ?? DateTime.now(),
-      canEditOrDelete: json['canEditOrDelete'] ?? false,
+      canEditOrDelete: json['canEditOrDelete'] ?? true,
     );
   }
 

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +8,7 @@ import '../model/auth_model.dart';
 import '../service/auth_service.dart';
 import '../service/schedule_service.dart';
 import '../utils/message_utils.dart';
+import '../utils/image_normalizer.dart';
 import 'schedule/add_schedule_page.dart';
 import 'schedule/add_group_schedule_page.dart';
 import 'schedule/select_group_page.dart';
@@ -65,6 +66,9 @@ class _HomePageState extends State<HomePage> {
           subs.where((s) => s['status'] == 'pending').length;
       if (mounted) setState(() => _pendingNotificationCount = count);
     } catch (_) {}
+    } catch (e) {
+      debugPrint('_loadNotificationCount failed: $e');
+    }
   }
 
   @override
@@ -90,7 +94,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (mounted) {
         setState(() => _schedules = []);
-        MessageUtils.show(context, '加载日程失败');
+        MessageUtils.show(context, '鍔犺浇鏃ョ▼澶辫触');
       }
     }
   }
@@ -103,7 +107,7 @@ class _HomePageState extends State<HomePage> {
       setState(() => _schedules = schedules);
     } catch (e) {
       if (mounted) {
-MessageUtils.show(context, '搜索失败: $e');
+MessageUtils.show(context, '鎼滅储澶辫触: $e');
       }
     }
   }
@@ -133,7 +137,7 @@ MessageUtils.show(context, '搜索失败: $e');
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.black),
-              title: const Text('拍照', style: TextStyle(color: Colors.black)),
+              title: const Text('鎷嶇収', style: TextStyle(color: Colors.black)),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -141,7 +145,7 @@ MessageUtils.show(context, '搜索失败: $e');
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.black),
-              title: const Text('从相册选择', style: TextStyle(color: Colors.black)),
+              title: const Text('浠庣浉鍐岄€夋嫨', style: TextStyle(color: Colors.black)),
               onTap: () {
                 Navigator.pop(context);
                 _pickImageFromGallery();
@@ -176,53 +180,9 @@ MessageUtils.show(context, '搜索失败: $e');
       }
     } catch (e) {
       if (mounted) {
-        MessageUtils.show(context, '打开相机失败: $e');
+        MessageUtils.show(context, '鎵撳紑鐩告満澶辫触: $e');
       }
     }
-  }
-
-  Future<void> _openGallery() async {
-    final group = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SelectGroupPage()),
-    );
-    if (group != null && mounted) {
-      _showGallerySourceSelection(group.id, group.name);
-    }
-  }
-
-  void _showGallerySourceSelection(String groupId, String groupName) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.black),
-              title: const Text('个人日程', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageFromGallery(isGroup: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group, color: Colors.blue),
-              title: Text('群组: $groupName', style: const TextStyle(color: Colors.blue)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImageFromGallery(isGroup: true, groupId: groupId, groupName: groupName);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.close, color: Colors.grey),
-              title: const Text('取消', style: TextStyle(color: Colors.grey)),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickImageFromGallery({bool isGroup = false, String? groupId, String? groupName}) async {
@@ -230,13 +190,18 @@ MessageUtils.show(context, '搜索失败: $e');
       final images = await _picker.pickMultiImage(imageQuality: 80, maxWidth: 1920, maxHeight: 1920);
       if (images.isEmpty) return;
       if (!mounted) return;
-      setState(() { _isParsing = true; _parsingStep = '正在识别...'; _parsingProgress = 0; });
+      setState(() { _isParsing = true; _parsingStep = '姝ｅ湪璇嗗埆...'; _parsingProgress = 0; });
       final allSchedules = <Schedule>[];
       for (int i = 0; i < images.length; i++) {
         if (!mounted) return;
-        setState(() { _parsingStep = '识别中 (${i + 1}/${images.length})'; _parsingProgress = (i + 0.5) / images.length; });
+        setState(() { _parsingStep = '璇嗗埆涓?(${i + 1}/${images.length})'; _parsingProgress = (i + 0.5) / images.length; });
         try {
           final ocr = await _textRecognizer.processImage(InputImage.fromFilePath(images[i].path));
+          final jpegPath = await ImageNormalizer.toJpeg(images[i].path);
+          if (jpegPath == null) continue; // 鏃犳硶璇嗗埆鐨勫浘鐗囷紝璺宠繃锛堥伩鍏嶅師鐢熷穿婧冿級
+          final ocr = await _textRecognizer
+              .processImage(InputImage.fromFilePath(jpegPath))
+              .timeout(const Duration(seconds: 20));
           if (ocr.text.isEmpty) continue;
           final results = await ScheduleService().parseNotification(ocr.text);
           for (final r in results) {
@@ -245,17 +210,21 @@ MessageUtils.show(context, '搜索失败: $e');
             final tm = r['eventTime'] ?? ''; if (tm.isNotEmpty) {
               try { final p = tm.split(':'); if (p.length >= 2) t = DateTime(t.year, t.month, t.day, int.parse(p[0]), int.parse(p[1])); } catch (_) {}
             }
-            allSchedules.add(Schedule.create(title: r['title'] ?? '未命名日程', description: r['remark'] ?? '', location: r['location'] ?? '', time: t));
+            allSchedules.add(Schedule.create(title: r['title'] ?? '鏈懡鍚嶆棩绋?, description: r['remark'] ?? '', location: r['location'] ?? '', time: t));
           }
         } catch (_) {}
       }
       if (!mounted) return;
       setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
-      if (allSchedules.isEmpty) { MessageUtils.show(context, '未检测到日程'); return; }
+      if (allSchedules.isEmpty) { MessageUtils.show(context, '鏈娴嬪埌鏃ョ▼'); return; }
       final confirmed = await Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmSchedulePage(parsedSchedules: allSchedules)));
       if (confirmed != null && mounted) _loadSchedules();
     } catch (e) {
-      if (mounted) MessageUtils.show(context, '打开相册失败: $e');
+      if (mounted) MessageUtils.show(context, '鎵撳紑鐩稿唽澶辫触: $e');
+      if (mounted) {
+        setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
+        MessageUtils.show(context, '鎵撳紑鐩稿唽澶辫触: $e');
+      }
     }
   }
 
@@ -273,7 +242,7 @@ MessageUtils.show(context, '搜索失败: $e');
       _processImage(image);
     } catch (e) {
       if (mounted) {
-        MessageUtils.show(context, '选择图片失败: $e');
+        MessageUtils.show(context, '閫夋嫨鍥剧墖澶辫触: $e');
       }
     }
   }
@@ -283,12 +252,21 @@ MessageUtils.show(context, '搜索失败: $e');
     try {
       setState(() {
         _isParsing = true;
-        _parsingStep = '正在识别文字...';
+        _parsingStep = '姝ｅ湪璇嗗埆鏂囧瓧...';
         _parsingProgress = 0.3;
       });
 
-      final inputImage = InputImage.fromFilePath(image.path);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
+      final jpegPath = await ImageNormalizer.toJpeg(image.path);
+      if (jpegPath == null) {
+        if (!mounted) return;
+        setState(() { _isParsing = false; _parsingStep = ''; _parsingProgress = 0; });
+        MessageUtils.show(context, '鏃犳硶璇嗗埆璇ュ浘鐗囨牸寮忥紝璇锋崲涓€寮?);
+        return;
+      }
+      final inputImage = InputImage.fromFilePath(jpegPath);
+      final recognizedText = await _textRecognizer
+          .processImage(inputImage)
+          .timeout(const Duration(seconds: 20));
       final ocrResult = recognizedText.text;
 
       if (!mounted) return;
@@ -299,13 +277,13 @@ MessageUtils.show(context, '搜索失败: $e');
           _parsingStep = '';
           _parsingProgress = 0;
         });
-        MessageUtils.show(context, '未检测到文字，请重新拍摄');
+        MessageUtils.show(context, '鏈娴嬪埌鏂囧瓧锛岃閲嶆柊鎷嶆憚');
         return;
       }
 
       if (!mounted) return;
       setState(() {
-        _parsingStep = '正在解析日程...';
+        _parsingStep = '姝ｅ湪瑙ｆ瀽鏃ョ▼...';
         _parsingProgress = 0.7;
       });
 
@@ -343,7 +321,7 @@ MessageUtils.show(context, '搜索失败: $e');
             } catch (_) {}
           }
           return Schedule.create(
-            title: r['title'] ?? '未命名日程',
+            title: r['title'] ?? '鏈懡鍚嶆棩绋?,
             description: r['remark'] ?? '',
             location: r['location'] ?? '',
             time: scheduleTime,
@@ -367,7 +345,7 @@ MessageUtils.show(context, '搜索失败: $e');
           _loadSchedules();
         }
       } else {
-        MessageUtils.show(context, '未解析到日程信息');
+        MessageUtils.show(context, '鏈В鏋愬埌鏃ョ▼淇℃伅');
       }
     } catch (e) {
       if (!mounted) return;
@@ -376,37 +354,8 @@ MessageUtils.show(context, '搜索失败: $e');
         _parsingStep = '';
         _parsingProgress = 0;
       });
-      MessageUtils.show(context, '解析失败: $e');
+      MessageUtils.show(context, '瑙ｆ瀽澶辫触: $e');
     }
-  }
-
-  void _showAddScheduleOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.black),
-              title: const Text('个人日程', style: TextStyle(color: Colors.black)),
-              onTap: () {
-                Navigator.pop(context);
-                _addPersonalSchedule();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group, color: Colors.blue),
-              title: const Text('群组日程', style: TextStyle(color: Colors.blue)),
-              onTap: () {
-                Navigator.pop(context);
-                _addGroupSchedule();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _addPersonalSchedule() async {
@@ -485,7 +434,7 @@ MessageUtils.show(context, '搜索失败: $e');
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '搜索',
+                                '鎼滅储',
                                 style: TextStyle(fontSize: 14, color: Color(0xFFBDBDBD)),
                               ),
                             ),
@@ -534,7 +483,7 @@ MessageUtils.show(context, '搜索失败: $e');
               ? AppBar(
                   automaticallyImplyLeading: false,
                   title: const Text(
-                    '发现',
+                    '鍙戠幇',
                     style: TextStyle(fontWeight: FontWeight.w300),
                   ),
                 )
@@ -542,7 +491,7 @@ MessageUtils.show(context, '搜索失败: $e');
                   ? AppBar(
                       automaticallyImplyLeading: false,
                       title: const Text(
-                        '共享',
+                        '鍏变韩',
                         style: TextStyle(fontWeight: FontWeight.w300),
                       ),
                     )
@@ -630,10 +579,10 @@ MessageUtils.show(context, '搜索失败: $e');
         selectedFontSize: 14,
         unselectedFontSize: 14,
         items: const [
-          BottomNavigationBarItem(label: '首页', icon: Icon(Icons.home_outlined)),
-          BottomNavigationBarItem(label: '发现', icon: Icon(Icons.explore_outlined)),
-          BottomNavigationBarItem(label: '共享', icon: Icon(Icons.group_outlined)),
-          BottomNavigationBarItem(label: '我的', icon: Icon(Icons.person_outline)),
+          BottomNavigationBarItem(label: '棣栭〉', icon: Icon(Icons.home_outlined)),
+          BottomNavigationBarItem(label: '鍙戠幇', icon: Icon(Icons.explore_outlined)),
+          BottomNavigationBarItem(label: '鍏变韩', icon: Icon(Icons.group_outlined)),
+          BottomNavigationBarItem(label: '鎴戠殑', icon: Icon(Icons.person_outline)),
         ],
       ),
     );
@@ -667,7 +616,7 @@ MessageUtils.show(context, '搜索失败: $e');
                   ),
                   const Spacer(),
                   Text(
-                    '${_schedulesForSelectedDay.length} 个日程',
+                    '${_schedulesForSelectedDay.length} 涓棩绋?,
                     style: const TextStyle(fontSize: 14, color: Colors.black54),
                   ),
                 ],
@@ -678,7 +627,7 @@ MessageUtils.show(context, '搜索失败: $e');
             const SliverFillRemaining(
               hasScrollBody: false,
               child: Center(
-                child: Text('暂无日程', style: TextStyle(color: Colors.black38)),
+                child: Text('鏆傛棤鏃ョ▼', style: TextStyle(color: Colors.black38)),
               ),
             )
           else
@@ -716,7 +665,7 @@ MessageUtils.show(context, '搜索失败: $e');
             Expanded(
               child: _buildCameraAction(
                 icon: Icons.camera_alt_outlined,
-                label: '拍照识别',
+                label: '鎷嶇収璇嗗埆',
                 onTap: () => _pickImage(ImageSource.camera),
               ),
             ),
@@ -724,7 +673,7 @@ MessageUtils.show(context, '搜索失败: $e');
             Expanded(
               child: _buildCameraAction(
                 icon: Icons.photo_library_outlined,
-                label: '相册上传',
+                label: '鐩稿唽涓婁紶',
                 onTap: () => _pickImageFromGallery(),
               ),
             ),
@@ -874,6 +823,11 @@ MessageUtils.show(context, '搜索失败: $e');
 
   Widget _buildDiscoverContent() {
     return const DiscoverPage();
+    return const SafeArea(
+      child: Center(
+        child: Text('鏁鏈熷緟', style: TextStyle(color: Colors.black26, fontSize: 15)),
+      ),
+    );
   }
 
   Widget _buildGroupContent() {
@@ -930,12 +884,12 @@ MessageUtils.show(context, '搜索失败: $e');
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '账号: ${AuthService.currentUser?.username ?? widget.username}',
+                        '璐﹀彿: ${AuthService.currentUser?.username ?? widget.username}',
                         style: const TextStyle(fontSize: 13, color: Colors.black54),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '实名认证：${AuthService.currentUser?.realNameVerified == true ? (AuthService.currentUser?.realName ?? '已认证') : '未认证'}',
+                        '瀹炲悕璁よ瘉锛?{AuthService.currentUser?.realNameVerified == true ? (AuthService.currentUser?.realName ?? '宸茶璇?) : '鏈璇?}',
                         style: const TextStyle(fontSize: 13, color: Colors.black54),
                       ),
                     ],
@@ -944,7 +898,7 @@ MessageUtils.show(context, '搜索失败: $e');
               ],
             ),
             const SizedBox(height: 48),
-            // 邮箱
+            // 閭
             Container(
               margin: const EdgeInsets.only(bottom: 12),
               child: Material(
@@ -974,7 +928,7 @@ MessageUtils.show(context, '搜索失败: $e');
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            hasEmail ? email! : '点击绑定邮箱',
+                            hasEmail ? email! : '鐐瑰嚮缁戝畾閭',
                             style: TextStyle(
                               fontSize: 15,
                               color: hasEmail ? Colors.black : Colors.black87,
@@ -988,7 +942,7 @@ MessageUtils.show(context, '搜索失败: $e');
                 ),
               ),
             ),
-            // 手机号
+            // 鎵嬫満鍙?
             Container(
               margin: const EdgeInsets.only(bottom: 12),
               child: Material(
@@ -1018,7 +972,7 @@ MessageUtils.show(context, '搜索失败: $e');
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            hasPhone ? phone! : '点击绑定手机号',
+                            hasPhone ? phone! : '鐐瑰嚮缁戝畾鎵嬫満鍙?,
                             style: TextStyle(
                               fontSize: 15,
                               color: hasPhone ? Colors.black : Colors.black38,
@@ -1032,15 +986,16 @@ MessageUtils.show(context, '搜索失败: $e');
                 ),
               ),
             ),
-            _buildProfileItem(Icons.lock_outline, '修改密码', onTap: () async {
+            _buildProfileItem(Icons.lock_outline, '淇敼瀵嗙爜', onTap: () async {
               await Navigator.pushNamed(context, '/change-password');
               setState(() {});
             }),
-            _buildProfileItem(Icons.qr_code_scanner, '扫一扫', onTap: _openQrScanner),
-            _buildProfileItem(Icons.info_outline, '关于', onTap: () => Navigator.pushNamed(context, '/about')),
+            _buildProfileItem(Icons.qr_code_scanner, '鎵竴鎵?, onTap: _openQrScanner),
+            _buildProfileItem(Icons.info_outline, '鍏充簬', onTap: () => Navigator.pushNamed(context, '/about')),
+            _buildProfileItem(Icons.feedback_outlined, '鎰忚鍙嶉', onTap: () => Navigator.pushNamed(context, '/feedback')),
             const SizedBox(height: 24),
-            _buildProfileItem(Icons.logout, '退出登录', onTap: () => _showLogoutDialog()),
-            _buildProfileItem(Icons.delete_forever, '注销账号', onTap: () => _showDeleteAccountDialog()),
+            _buildProfileItem(Icons.logout, '閫€鍑虹櫥褰?, onTap: () => _showLogoutDialog()),
+            _buildProfileItem(Icons.delete_forever, '娉ㄩ攢璐﹀彿', onTap: () => _showDeleteAccountDialog()),
           ],
         ),
       ),
@@ -1192,9 +1147,9 @@ MessageUtils.show(context, '搜索失败: $e');
   void _showDeleteDialog(Schedule schedule) async {
     final confirmed = await MessageUtils.showConfirmDialog(
       context,
-      title: '删除日程',
-      content: '确定要删除"${schedule.title}"吗？',
-      confirmText: '删除',
+      title: '鍒犻櫎鏃ョ▼',
+      content: '纭畾瑕佸垹闄?${schedule.title}"鍚楋紵',
+      confirmText: '鍒犻櫎',
       isDangerous: true,
     );
     if (confirmed == true) {
@@ -1203,9 +1158,9 @@ MessageUtils.show(context, '搜索失败: $e');
   }
 
   String _formatDate(DateTime date) {
-    final months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-    final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    return '${date.year}年${months[date.month - 1]}${date.day}日 ${weekdays[date.weekday - 1]}';
+    final months = ['1鏈?, '2鏈?, '3鏈?, '4鏈?, '5鏈?, '6鏈?, '7鏈?, '8鏈?, '9鏈?, '10鏈?, '11鏈?, '12鏈?];
+    final weekdays = ['鍛ㄤ竴', '鍛ㄤ簩', '鍛ㄤ笁', '鍛ㄥ洓', '鍛ㄤ簲', '鍛ㄥ叚', '鍛ㄦ棩'];
+    return '${date.year}骞?{months[date.month - 1]}${date.day}鏃?${weekdays[date.weekday - 1]}';
   }
 
   String _formatTime(DateTime time) {
@@ -1243,7 +1198,7 @@ MessageUtils.show(context, '搜索失败: $e');
       });
     } catch (e) {
       if (mounted) {
-        MessageUtils.show(context, '删除失败: $e');
+        MessageUtils.show(context, '鍒犻櫎澶辫触: $e');
       }
     }
   }
@@ -1251,9 +1206,9 @@ MessageUtils.show(context, '搜索失败: $e');
   void _showLogoutDialog() async {
     final confirmed = await MessageUtils.showConfirmDialog(
       context,
-      title: '退出登录',
-      content: '确定要退出登录吗？',
-      confirmText: '退出',
+      title: '閫€鍑虹櫥褰?,
+      content: '纭畾瑕侀€€鍑虹櫥褰曞悧锛?,
+      confirmText: '閫€鍑?,
     );
     if (confirmed == true) {
       await _logout();
@@ -1263,9 +1218,9 @@ MessageUtils.show(context, '搜索失败: $e');
   void _showDeleteAccountDialog() async {
     final confirmed = await MessageUtils.showConfirmDialog(
       context,
-      title: '注销账号',
-      content: '确定要注销账号吗？此操作不可恢复。',
-      confirmText: '注销',
+      title: '娉ㄩ攢璐﹀彿',
+      content: '纭畾瑕佹敞閿€璐﹀彿鍚楋紵姝ゆ搷浣滀笉鍙仮澶嶃€?,
+      confirmText: '娉ㄩ攢',
       isDangerous: true,
     );
     if (confirmed == true) {

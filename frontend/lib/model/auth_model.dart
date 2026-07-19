@@ -30,6 +30,7 @@ class LoginResponse {
   final String? riskToken;
   final bool realNameVerified;
   final String? realName;
+  final String? role;
 
   LoginResponse({
     required this.accessToken,
@@ -45,6 +46,7 @@ class LoginResponse {
     this.riskToken,
     this.realNameVerified = false,
     this.realName,
+    this.role,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -62,10 +64,12 @@ class LoginResponse {
       riskToken: json['riskToken'],
       realNameVerified: json['realNameVerified'] ?? false,
       realName: json['realName'],
+      role: json['role'] as String?,
     );
   }
 
   bool get isRiskRequired => riskRequired == true;
+  bool get isAdmin => role == 'ADMIN';
 }
 
 class RegisterResponse {

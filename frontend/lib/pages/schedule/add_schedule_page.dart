@@ -133,7 +133,6 @@ class _AddSchedulePageState extends State<AddSchedulePage> {
     }
 
     setState(() => _isSaving = true);
-
     try {
       if (_selectedTime == null) {
         if (mounted) MessageUtils.show(context, '请选择时间');

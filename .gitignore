@@ -1,4 +1,4 @@
-# ===== 全局 =====
+﻿# ===== 鍏ㄥ眬 =====
 .idea/
 *.iml
 *.iws
@@ -7,14 +7,14 @@
 **/.DS_Store
 .vscode/
 
-# ===== 后端 =====
+# ===== 鍚庣 =====
 backend/target/
 backend/.env
 backend/.env.*
 !backend/.env.example
 backend/.mvn/wrapper/maven-wrapper.jar
 
-# ===== 前端 =====
+# ===== 鍓嶇 =====
 frontend/.dart_tool/
 frontend/build/
 frontend/.flutter-plugins-dependencies
@@ -31,7 +31,15 @@ frontend/ios/Pods/
 frontend/ios/Flutter/.last_build_id
 start-prod.sh
 frontend/android/app/chronoflow.keystore
+frontend/android/app/chronoflow.keystore
+web/node_modules/
 
-# ===== 发布/备份 =====
+# ===== 鍙戝竷/澶囦唤 =====
 release/
 db_backup/
+uploads/
+local.properties
+start-prod.sh
+XAXINAN.pem
+*.pem
+.git-rewrite/

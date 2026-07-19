@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
+@Order(1)
 public class RateLimitingFilter implements Filter {
 
     // Per-IP request count with timestamp
@@ -56,6 +58,11 @@ public class RateLimitingFilter implements Filter {
         String clientIp = getClientIp(httpRequest);
         String key = path + ":" + clientIp;
         long now = System.currentTimeMillis();
+
+        // Clean up expired entries to prevent memory leak
+        requestCounts.entrySet().removeIf(entry ->
+            now - entry.getValue()[1] > limit.windowMs
+        );
 
         long[] entry = requestCounts.compute(key, (k, v) -> {
             if (v == null || now - v[1] > limit.windowMs) {

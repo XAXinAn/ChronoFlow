@@ -1,9 +1,13 @@
-spring:
+﻿spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/chronoflow?useSSL=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -16,6 +20,7 @@ spring:
   web:
     resources:
       static-locations: file:/app/static/
+      static-locations: classpath:/static/,file:/app/static/
 
 mybatis-plus:
   type-aliases-package: com.chronoflow.backend.entity
@@ -25,6 +30,16 @@ mybatis-plus:
 
 server:
   port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,text/javascript,application/json,image/svg+xml
+    min-response-size: 1024
+
+
+app:
+  version: ${APP_VERSION:1.1.0}
+  version-code: ${APP_VERSION_CODE:1}
+  download-url: ${APP_DOWNLOAD_URL:}
 
 
 app:
@@ -52,7 +67,7 @@ aliyun:
     access-key-id: ${ALIYUN_DM_ACCESS_KEY_ID:}
     access-key-secret: ${ALIYUN_DM_ACCESS_KEY_SECRET:}
     account-name: ${ALIYUN_DM_ACCOUNT_NAME:}
-    from-alias: ${ALIYUN_DM_FROM_ALIAS:时纪流}
+    from-alias: ${ALIYUN_DM_FROM_ALIAS:鏃剁邯娴亇
   green:
     access-key-id: ${ALIYUN_GREEN_ACCESS_KEY_ID:}
     access-key-secret: ${ALIYUN_GREEN_ACCESS_KEY_SECRET:}
@@ -65,7 +80,7 @@ aliyun:
     scene-id: ${ALIYUN_CLOUDAUTH_SCENE_ID:}
 
 # ========================
-# MindFlow 配置
+# MindFlow 閰嶇疆
 # ========================
 mindflow:
   spark:
@@ -85,3 +100,9 @@ mindflow:
   milvus:
     db-path: ${MILVUS_DB_PATH:/app/data/milvus_lite.db}
     embedding-model: ${VECTOR_EMBEDDING_MODEL:text-embedding-v1}
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:chronoflow}
+  base-url: ${MINIO_BASE_URL:http://localhost:9000/chronoflow}

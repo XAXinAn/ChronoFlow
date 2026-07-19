@@ -67,8 +67,19 @@ class AuthService {
       ApiClient.setUser(loginResponse);
       return loginResponse;
     } else {
-      throw Exception('验证码错误');
+      final String msg = _extractErrorMessage(response.body);
+      throw Exception(msg);
     }
+  }
+
+  String _extractErrorMessage(String body) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map && data.containsKey('message')) {
+        return data['message'].toString();
+      }
+    } catch (_) {}
+    return '验证码错误';
   }
 
   // 发送邮箱验证码
@@ -106,7 +117,8 @@ class AuthService {
       ApiClient.setUser(loginResponse);
       return loginResponse;
     } else {
-      throw Exception('验证码错误');
+      final String msg = _extractErrorMessage(response.body);
+      throw Exception(msg);
     }
   }
 
@@ -181,7 +193,13 @@ class AuthService {
     if (response.statusCode == 200 && data['code'] == 200) {
       return data['data']['certifyId'] as String;
     } else {
-      final msg = data['message'] ?? '注册初始化失败';
+      // If validation errors present, include field details
+      var msg = data['message'] ?? '注册初始化失败';
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final details = errors.values.join('；');
+        msg = '$msg：$details';
+      }
       throw Exception(msg);
     }
   }
@@ -265,6 +283,7 @@ class AuthService {
       phone: data['phone'] ?? '',
       realNameVerified: data['realNameVerified'] ?? ApiClient.currentUser?.realNameVerified ?? false,
       realName: data['realName'] ?? ApiClient.currentUser?.realName,
+      role: data['role'] ?? ApiClient.currentUser?.role,
     );
     await _storage.saveUser(loginResponse);
     ApiClient.setUser(loginResponse);

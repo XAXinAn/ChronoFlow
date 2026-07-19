@@ -2,10 +2,11 @@ package com.chronoflow.backend.util;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -70,8 +71,10 @@ public final class CryptoUtil {
 
     private static SecretKey deriveKey(String secret) {
         try {
-            MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            byte[] keyBytes = sha.digest(secret.getBytes(StandardCharsets.UTF_8));
+            byte[] salt = "ChronoFlow-Crypto-Salt".getBytes(StandardCharsets.UTF_8);
+            PBEKeySpec spec = new PBEKeySpec(secret.toCharArray(), salt, 600_000, 256);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            byte[] keyBytes = factory.generateSecret(spec).getEncoded();
             return new SecretKeySpec(keyBytes, "AES");
         } catch (Exception e) {
             throw new RuntimeException("Key derivation failed", e);

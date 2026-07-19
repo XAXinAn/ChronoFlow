@@ -48,17 +48,6 @@ class _SelectPublishTargetPageState extends State<SelectPublishTargetPage> {
     return groups.map((g) => _buildItem(g, 0)).toList();
   }
 
-  List<Widget> _buildTreeItems(List<Group> groups, int depth) {
-    final items = <Widget>[];
-    for (final g in groups) {
-      items.add(_buildItem(g, depth));
-      if (g.children != null && g.children!.isNotEmpty) {
-        items.addAll(_buildTreeItems(g.children!, depth + 1));
-      }
-    }
-    return items;
-  }
-
   Widget _buildItem(Group group, int depth) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

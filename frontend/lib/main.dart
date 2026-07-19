@@ -13,6 +13,8 @@ import 'pages/profile/about_page.dart';
 import 'pages/profile/privacy_policy_page.dart';
 import 'pages/profile/user_agreement_page.dart';
 import 'pages/schedule/shared_image_handler.dart';
+import 'pages/profile/feedback_page.dart';
+import 'pages/profile/feedback_detail_page.dart';
 import 'model/auth_model.dart';
 import 'service/auth_service.dart';
 import 'constants/app_constants.dart';
@@ -112,7 +114,7 @@ class MyApp extends StatelessWidget {
           case '/register':
             return MaterialPageRoute(builder: (_) => const RegisterPage());
           case '/home':
-            final loginResponse = settings.arguments as LoginResponse?;
+            final loginResponse = settings.arguments as LoginResponse? ?? AuthService.currentUser;
             if (loginResponse == null) {
               return MaterialPageRoute(builder: (_) => const LoginPage());
             }
@@ -132,6 +134,15 @@ class MyApp extends StatelessWidget {
           case '/about':
             return MaterialPageRoute(
               builder: (_) => const AboutPage(),
+            );
+          case '/feedback':
+            return MaterialPageRoute(
+              builder: (_) => const FeedbackPage(),
+            );
+          case '/feedback-detail':
+            final feedbackResponse = settings.arguments;
+            return MaterialPageRoute(
+              builder: (_) => FeedbackDetailPage(feedback: feedbackResponse),
             );
           case '/change-phone':
             final phone = settings.arguments is String ? settings.arguments as String : null;
