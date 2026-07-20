@@ -77,6 +77,24 @@ public class MinioService {
         }
     }
 
+    /**
+     * 上传学习资源内容（Markdown）到 MinIO。
+     * Object path: resources/{userId}/{resourceType}/{uuid}.md
+     * @return MinIO 公开访问 URL
+     */
+    public String uploadResource(byte[] content, Long userId, String resourceType, String uuid) {
+        String objectName = String.format("resources/%d/%s/%s.md", userId, resourceType, uuid);
+        return upload(content, objectName, "text/markdown; charset=utf-8");
+    }
+
+    /**
+     * 获取学习资源在 MinIO 中的公开访问 URL。
+     * MinIO bucket 为 public-read，无需生成预签名 URL。
+     */
+    public String getResourceUrl(String fileKey) {
+        return baseUrl + "/" + fileKey;
+    }
+
     private MinioClient getClient() {
         if (client == null) {
             synchronized (this) {

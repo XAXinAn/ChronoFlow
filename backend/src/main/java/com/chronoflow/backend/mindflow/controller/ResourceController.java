@@ -1,15 +1,21 @@
 package com.chronoflow.backend.mindflow.controller;
 
 import com.chronoflow.backend.dto.ApiResponse;
+import com.chronoflow.backend.exception.BusinessException;
 import com.chronoflow.backend.mindflow.agent.AgentEvent;
+import com.chronoflow.backend.mindflow.dto.DownloadResponse;
 import com.chronoflow.backend.mindflow.dto.ResourceFeedbackRequest;
 import com.chronoflow.backend.mindflow.dto.ResourceRequest;
 import com.chronoflow.backend.mindflow.dto.ResourceResponse;
+import com.chronoflow.backend.mindflow.entity.LearningResource;
+import com.chronoflow.backend.mindflow.mapper.LearningResourceMapper;
 import com.chronoflow.backend.mindflow.service.ResourceService;
+import com.chronoflow.backend.service.MinioService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +40,8 @@ import java.util.Map;
 public class ResourceController {
 
     private final ResourceService resourceService;
+    private final LearningResourceMapper resourceMapper;
+    private final MinioService minioService;
 
     /**
      * 生成学习资源（SSE流式）。
@@ -42,18 +50,22 @@ public class ResourceController {
      * 四阶段流程：知识点细化 → 联网检索 → 5子Agent并行生成 → 审核+持久化
      */
     @PostMapping(value = "/generate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Map<String, Object>> generateResources(
+    public ResponseEntity<Flux<Map<String, Object>>> generateResources(
             HttpServletRequest request,
             @Valid @RequestBody ResourceRequest resourceRequest) {
 
         Long userId = (Long) request.getAttribute("userId");
         log.info("资源生成请求: userId={}, topic={}", userId, resourceRequest.getTopic());
 
-        return resourceService.generateResources(
+        Flux<Map<String, Object>> flux = resourceService.generateResources(
                         userId,
                         resourceRequest.getSessionId(),
                         resourceRequest.getTopic())
                 .map(this::toSseEvent);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8")
+                .body(flux);
     }
 
     /**
@@ -92,6 +104,42 @@ public class ResourceController {
 
         resourceService.submitFeedback(id, feedback.getRating(), feedback.getComment());
         return ResponseEntity.ok(ApiResponse.success("反馈提交成功", null));
+    }
+
+    /**
+     * 下载资源文件。
+     * GET /api/v1/resources/{id}/download
+     *
+     * 有 fileKey → 返回 MinIO 公开 URL；无 fileKey（旧资源）→ 抛异常。
+     */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<ApiResponse<DownloadResponse>> downloadResource(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
+        Long userId = (Long) request.getAttribute("userId");
+        LearningResource resource = resourceMapper.selectById(id);
+
+        if (resource == null) {
+            throw new BusinessException("资源不存在");
+        }
+        if (!resource.getUserId().equals(userId)) {
+            throw new BusinessException("无权下载该资源");
+        }
+        if (resource.getFileKey() == null || resource.getFileKey().isEmpty()) {
+            throw new BusinessException("该资源不支持下载（旧版资源请查看详情）");
+        }
+
+        String url = minioService.getResourceUrl(resource.getFileKey());
+        String filename = resource.getTitle() + ".md";
+
+        return ResponseEntity.ok(ApiResponse.success("获取下载链接成功",
+                DownloadResponse.builder()
+                        .url(url)
+                        .filename(filename)
+                        .fileSize(resource.getFileSize())
+                        .mimeType("text/markdown")
+                        .build()));
     }
 
     private Map<String, Object> toSseEvent(AgentEvent event) {

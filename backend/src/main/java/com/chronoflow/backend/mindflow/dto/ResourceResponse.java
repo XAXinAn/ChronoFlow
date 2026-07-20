@@ -25,6 +25,10 @@ public class ResourceResponse {
     private String sessionId;
     private String resourceType;
     private String title;
+    private String fileKey;
+    private Long fileSize;
+    /** MinIO 公开访问 URL（仅新资源有值） */
+    private String downloadUrl;
     private String content;
     private String metadata;
     private BigDecimal confidenceScore;

@@ -46,7 +46,8 @@ public class OrchestratorAgent implements MindFlowAgent {
 
     @Override
     public String getIntentLabel() {
-        return "GENERAL_CHAT";
+        // 修复（vs HEAD）：返回内部标识 _ORCHESTRATOR，避免被 AgentRegistry 路由到自身造成无限递归
+        return "_ORCHESTRATOR";
     }
 
     /**

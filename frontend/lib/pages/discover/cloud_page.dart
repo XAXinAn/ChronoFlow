@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../model/resource_model.dart';
 import '../../service/cloud_service.dart';
 import 'resource_detail_page.dart';
@@ -212,7 +213,17 @@ class _FolderContentPageState extends State<_FolderContentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.folderName, style: const TextStyle(fontWeight: FontWeight.w300))),
+      appBar: AppBar(
+        title: Text(widget.folderName, style: const TextStyle(fontWeight: FontWeight.w300)),
+        actions: [
+          if (_resources.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.archive),
+              tooltip: '导出全部为 ZIP',
+              onPressed: () => _exportAll(context),
+            ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _resources.isEmpty
@@ -287,5 +298,27 @@ class _FolderContentPageState extends State<_FolderContentPage> {
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _exportAll(BuildContext context) async {
+    final zipUrl = _cloudService.getFolderExportUrl(widget.folderType);
+    final uri = Uri.parse(zipUrl);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开导出链接')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e')),
+        );
+      }
+    }
   }
 }

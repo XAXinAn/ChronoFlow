@@ -37,4 +37,21 @@ class CloudService {
     final data = jsonDecode(body);
     return LearningResource.fromJson(data['data']);
   }
+
+  /// 获取单个资源的下载链接
+  Future<String?> getResourceDownloadUrl(int resourceId) async {
+    try {
+      final body = await ApiClient.get('/v1/resources/$resourceId/download');
+      final data = jsonDecode(body);
+      if (data['code'] == 200 && data['data'] != null) {
+        return data['data']['url'] as String?;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// 批量导出指定类型的所有资源（返回 ZIP 直接下载 URL）
+  String getFolderExportUrl(String type) {
+    return '${ApiClient.baseUrl}/v1/cloud/folder/${type.toLowerCase()}/export';
+  }
 }

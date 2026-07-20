@@ -1,22 +1,46 @@
-﻿!backend/.env.example
-# ===== 发布/备份 =====
-# ===== 后端 =====
-# ===== 前端 =====
-# ===== 全局 =====
-**/.DS_Store
+# ChronoFlow .gitignore
+
+# ========================
+# Environment & Secrets
+# ========================
+.env
+.env.*
+*.pem
+*.keystore
+*.jks
+.keys
+XAXINAN.pem
+
+# ========================
+# Build Outputs
+# ========================
+target/
+build/
+*.jar
+*.apk
+*.aab
+*.tar.gz
+
+# ========================
+# IDE
+# ========================
+.idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
-*.pem
 .DS_Store
-.git-rewrite/
-.idea/
-.vscode/
-backend/.env
-backend/.env.*
+
+# ========================
+# Backend
+# ========================
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/target/
-db_backup/
+start-prod.sh
+
+# ========================
+# Frontend (Flutter)
+# ========================
 frontend/.dart_tool/
 frontend/.flutter-plugins-dependencies
 frontend/.pub/
@@ -32,9 +56,17 @@ frontend/coverage/
 frontend/ios/Flutter/.last_build_id
 frontend/ios/Pods/
 frontend/ios/Runner/FaceVerifyPlugin.swift
-local.properties
-release/
-start-prod.sh
+frontend/local.properties
 uploads/
+
+# ========================
+# Web (React)
+# ========================
 web/node_modules/
-XAXINAN.pem
+
+# ========================
+# Misc
+# ========================
+db_backup/
+release/
+.git-rewrite/

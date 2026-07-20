@@ -10,6 +10,7 @@ import com.chronoflow.backend.mindflow.mapper.LearningResourceMapper;
 import com.chronoflow.backend.mindflow.review.MindFlowReviewService;
 import com.chronoflow.backend.mindflow.util.PromptGuard;
 import com.chronoflow.backend.exception.BusinessException;
+import com.chronoflow.backend.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class ResourceService {
     private final MindFlowConfig config;
     private final MindFlowCacheService cacheService;
     private final MindFlowReviewService reviewService;
+    private final MinioService minioService;
 
     /**
      * 生成学习资源（SSE 流式）。
@@ -198,12 +200,23 @@ public class ResourceService {
     }
 
     private ResourceResponse toResourceResponse(LearningResource resource) {
+        String downloadUrl = null;
+        if (resource.getFileKey() != null && !resource.getFileKey().isEmpty()) {
+            try {
+                downloadUrl = minioService.getResourceUrl(resource.getFileKey());
+            } catch (Exception e) {
+                // MinIO 不可用时返回 null
+            }
+        }
         return ResourceResponse.builder()
                 .id(resource.getId())
                 .userId(resource.getUserId())
                 .sessionId(resource.getSessionId())
                 .resourceType(resource.getResourceType())
                 .title(resource.getTitle())
+                .fileKey(resource.getFileKey())
+                .fileSize(resource.getFileSize())
+                .downloadUrl(downloadUrl)
                 .content(resource.getContent())
                 .confidenceScore(resource.getConfidenceScore())
                 .reviewed(resource.getReviewed() != null && resource.getReviewed())

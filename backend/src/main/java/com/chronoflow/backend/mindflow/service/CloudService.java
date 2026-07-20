@@ -69,8 +69,12 @@ public class CloudService {
     private ResourceResponse toResourceResponse(LearningResource resource) {
         return ResourceResponse.builder()
                 .id(resource.getId())
+                .userId(resource.getUserId())
+                .sessionId(resource.getSessionId())
                 .resourceType(resource.getResourceType())
                 .title(resource.getTitle())
+                .fileKey(resource.getFileKey())
+                .fileSize(resource.getFileSize())
                 .content(resource.getContent())
                 .metadata(resource.getMetadata())
                 .confidenceScore(resource.getConfidenceScore())

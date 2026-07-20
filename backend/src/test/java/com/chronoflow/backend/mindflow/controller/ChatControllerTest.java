@@ -132,7 +132,7 @@ class ChatControllerTest {
         req.setSessionId("s1");
         req.setMessage("test");
 
-        Flux<Map<String, Object>> result = chatController.sendMessage(request, req);
+        Flux<Map<String, Object>> result = chatController.sendMessage(request, req).getBody();
 
         StepVerifier.create(result)
                 .assertNext(map -> {
@@ -155,7 +155,7 @@ class ChatControllerTest {
         req.setSessionId("s1");
         req.setMessage("test");
 
-        Flux<Map<String, Object>> result = chatController.sendMessage(request, req);
+        Flux<Map<String, Object>> result = chatController.sendMessage(request, req).getBody();
 
         StepVerifier.create(result)
                 .assertNext(map -> {
@@ -179,7 +179,7 @@ class ChatControllerTest {
         req.setSessionId("s1");
         req.setMessage("test");
 
-        Flux<Map<String, Object>> result = chatController.sendMessage(request, req);
+        Flux<Map<String, Object>> result = chatController.sendMessage(request, req).getBody();
 
         StepVerifier.create(result)
                 .assertNext(map -> {

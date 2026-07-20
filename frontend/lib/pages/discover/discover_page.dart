@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'chat_page.dart';
-import 'cloud_page.dart';
 
-/// 发现页 — MindFlow「发现 Tab」的默认展示页。
+/// 发现页 — MindFlow「发现 Tab」的默认展示页.
 ///
-/// 两个卡片入口：
-/// - AI学习系统 → ChatPage（统一对话界面）
-/// - 我的云盘   → CloudPage（资源管理）
+/// 唯一卡片入口：AI学习系统 → ChatPage（统一对话界面）
 class DiscoverPage extends StatelessWidget {
   const DiscoverPage({super.key});
 
@@ -32,24 +29,6 @@ class DiscoverPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ChatPage()),
-                );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // 我的云盘卡片
-            _buildEntryCard(
-              context,
-              icon: Icons.cloud_outlined,
-              iconColor: const Color(0xFF059669),
-              gradient: const [Color(0xFF059669), Color(0xFF34D399)],
-              title: '我的云盘',
-              subtitle: '学习资源管理 · 按类型分类浏览',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CloudPage()),
                 );
               },
             ),

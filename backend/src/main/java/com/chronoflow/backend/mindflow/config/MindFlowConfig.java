@@ -28,8 +28,8 @@ public class MindFlowConfig {
     @Data
     public static class Spark {
         private String apiKey;
-        private String baseUrl = "https://spark-api-open.xf-yun.com/v1";
-        private String model = "spark-4.0";
+        private String baseUrl = "https://maas-api.cn-huabei-1.xf-yun.com/v2";
+        private String model = "xsparkx2flash";
         private double temperature = 0.7;
     }
 

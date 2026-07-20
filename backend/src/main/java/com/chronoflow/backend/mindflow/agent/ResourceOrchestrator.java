@@ -7,11 +7,13 @@ import com.chronoflow.backend.mindflow.mapper.LearningResourceMapper;
 import com.chronoflow.backend.mindflow.review.MindFlowReviewService;
 import com.chronoflow.backend.mindflow.tool.WebSearchTool;
 import com.chronoflow.backend.mindflow.util.PromptGuard;
+import com.chronoflow.backend.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -43,6 +45,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
     private final MindFlowConfig config;
     private final LearningResourceMapper resourceMapper;
     private final MindFlowReviewService reviewService;
+    private final MinioService minioService;
 
     // 5个子Agent（构造函数注入）
     private final DocAgent docAgent;
@@ -89,8 +92,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
         return Flux.concat(
                 phase1Refine(ctx),
                 phase2Search(ctx),
-                phase3Generate(ctx),
-                phase4Persist(ctx)
+                phase3Generate(ctx)
         );
     }
 
@@ -183,10 +185,12 @@ public class ResourceOrchestrator implements MindFlowAgent {
                                         ctx.getResourceTitleMap().put(agentName, event.getTitle());
                                         ctx.getResourceContentMap().put(agentName, "");
                                     }
+                                    log.info("phase3 RESOURCE_CARD: agent={}, title={}", agentName, event.getTitle());
                                 } else if (AgentEventType.TEXT.getCode().equals(event.getType()) && event.getAgent() != null) {
                                     ctx.getResourceContentMap().merge(event.getAgent(),
                                             event.getContent() != null ? event.getContent() : "",
                                             String::concat);
+                                    log.info("phase3 TEXT: agent={}, contentLen={}", event.getAgent(), event.getContent() != null ? event.getContent().length() : 0);
                                 }
                             })
                             .onErrorResume(e -> {
@@ -203,10 +207,20 @@ public class ResourceOrchestrator implements MindFlowAgent {
             agentFluxes.add(agentFlux);
         }
 
-        return Flux.merge(agentFluxes)
+        // 使用 Mono.whenAll 等所有 agent Flux 完成后再推进（解决 Flux.merge 立即返回的问题）
+        Flux<AgentEvent> mergedEvents = Flux.merge(agentFluxes)
+                .timeout(java.time.Duration.ofMillis(config.getAgent().getExecutionTimeoutMs()));
+
+        // 等所有 agent 完成：Mono.whenAll 返回 void Mono
+        Mono<Void> allAgentsDone = Mono.when(agentFluxes.toArray(Flux[]::new))
                 .timeout(java.time.Duration.ofMillis(config.getAgent().getExecutionTimeoutMs()))
+                .then()
+                .doOnSuccess(v -> log.info("phase3全部agent完成: contentMap={}, titleMap={}",
+                        ctx.getResourceContentMap().size(), ctx.getResourceTitleMap().size()));
+
+        // 合并：事件流 + 等待所有agent完成（then空信号推进concat）
+        return Flux.merge(mergedEvents, allAgentsDone.thenMany(Flux.empty()))
                 .concatWith(Flux.defer(() -> {
-                    // 全部完成后，emit 一个汇总警告（如果有失败）
                     if (!failedAgents.isEmpty()) {
                         log.warn("部分资源生成失败: {}", String.join(", ", failedAgents));
                         return Flux.just(AgentEvent.builder()
@@ -228,6 +242,7 @@ public class ResourceOrchestrator implements MindFlowAgent {
     private Flux<AgentEvent> phase4Persist(AgentContext ctx) {
         Map<String, String> contentMap = ctx.getResourceContentMap();
         Map<String, String> titleMap = ctx.getResourceTitleMap();
+        log.info("phase4Persist: contentMap={}, titleMap={}", contentMap, titleMap);
 
         List<String> savedTypes = new ArrayList<>();
         List<String> rejectedTypes = new ArrayList<>();
@@ -241,19 +256,33 @@ public class ResourceOrchestrator implements MindFlowAgent {
                     // 内容审核（AI 生成的内容）
                     reviewService.reviewGeneratedContent(content, type);
 
+                    // 上传内容到 MinIO
+                    String uuid = UUID.randomUUID().toString();
+                    byte[] contentBytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    String fileKey = "resources/" + ctx.getUserId() + "/" + type + "/" + uuid + ".md";
+                    try {
+                        minioService.upload(contentBytes, fileKey, "text/markdown; charset=utf-8");
+                        log.info("内容已上传 MinIO: fileKey={}, size={}", fileKey, contentBytes.length);
+                    } catch (Exception e) {
+                        log.warn("MinIO 上传失败，降级存 MySQL: {}", e.getMessage());
+                        // MinIO 失败时降级存 MySQL（向后兼容）
+                    }
+
                     LearningResource resource = LearningResource.builder()
                             .userId(ctx.getUserId())
                             .sessionId(ctx.getSessionId())
                             .resourceType(type)
                             .title(title)
-                            .content(content)
+                            .fileKey(fileKey)
+                            .fileSize((long) contentBytes.length)
+                            .content(null)  // 新资源存 MinIO，MySQL 不存 content
                             .confidenceScore(new BigDecimal("0.85"))
                             .reviewed(true)
                             .version(1)
                             .build();
                     resourceMapper.insert(resource);
                     savedTypes.add(type);
-                    log.info("资源已保存: type={}, title={}, id={}", type, title, resource.getId());
+                    log.info("资源已保存: type={}, title={}, id={}, fileKey={}", type, title, resource.getId(), fileKey);
                 } catch (Exception e) {
                     log.warn("保存资源失败: type={}, reason={}", type, e.getMessage());
                     rejectedTypes.add(type);

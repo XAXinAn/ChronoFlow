@@ -50,9 +50,9 @@ public class StudentProfile {
     @TableField("error_types")
     private String errorTypes;
 
-    /** 画像版本号*/
+    /** 画像版本号 */
     @TableField("profile_version")
-    private Integer profileVersion;
+    private Short profileVersion;
 
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

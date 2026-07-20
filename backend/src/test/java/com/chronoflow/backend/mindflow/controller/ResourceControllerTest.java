@@ -62,7 +62,7 @@ class ResourceControllerTest {
         req.setSessionId("s1");
         req.setTopic("机器学习");
 
-        Flux<Map<String, Object>> result = resourceController.generateResources(request, req);
+        Flux<Map<String, Object>> result = resourceController.generateResources(request, req).getBody();
 
         StepVerifier.create(result)
                 .assertNext(e -> assertThat(e.get("type")).isEqualTo("PROGRESS"))

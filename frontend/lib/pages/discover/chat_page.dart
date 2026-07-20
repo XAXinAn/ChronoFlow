@@ -27,6 +27,7 @@ class _ChatPageState extends State<ChatPage> {
 
   String? _sessionId;
   final List<ChatMessage> _messages = [];
+  final Set<int> _expandedIndices = {};
   bool _isLoading = false;
   String _currentAiText = '';
   String? _progressText;
@@ -159,7 +160,7 @@ class _ChatPageState extends State<ChatPage> {
         title: const Text('AI学习系统', style: TextStyle(fontWeight: FontWeight.w300)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline, size: 22),
+            icon: const Icon(Icons.help_outline, size: 20),
             tooltip: '使用指导',
             onPressed: () {
               Navigator.push(
@@ -169,7 +170,7 @@ class _ChatPageState extends State<ChatPage> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add_comment_outlined, size: 20),
+            icon: const Icon(Icons.add_comment_outlined, size: 18),
             tooltip: '新建对话',
             onPressed: _newChat,
           ),
@@ -182,28 +183,28 @@ class _ChatPageState extends State<ChatPage> {
             Container(
               width: double.infinity,
               color: const Color(0xFF6366F1).withOpacity(0.08),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   const SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: 14,
+                    height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation(Color(0xFF6366F1)),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       _progressText!,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF6366F1)),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6366F1)),
                     ),
                   ),
                   if (_progressPercent > 0)
                     Text(
                       '${(_progressPercent * 100).toInt()}%',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6366F1)),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF6366F1)),
                     ),
                 ],
               ),
@@ -216,20 +217,20 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 48, color: Colors.black.withOpacity(0.15)),
-                        const SizedBox(height: 16),
+                        Icon(Icons.auto_awesome, size: 38, color: Colors.black.withOpacity(0.15)),
+                        const SizedBox(height: 12),
                         Text(
                           '开始你的学习之旅',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             color: Colors.black.withOpacity(0.35),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
                           '试试输入：帮我生成决策树的学习资料',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: Colors.black.withOpacity(0.25),
                           ),
                         ),
@@ -239,14 +240,15 @@ class _ChatPageState extends State<ChatPage> {
                 : ListView.builder(
                     controller: _scrollController,
                     reverse: true,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                     itemCount: _messages.length + (_isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == 0 && _isLoading) {
                         return _buildLoadingBubble();
                       }
-                      final msg = _messages[index - (_isLoading ? 1 : 0)];
-                      return _buildMessageBubble(msg);
+                      final msgIndex = index - (_isLoading ? 1 : 0);
+                      final msg = _messages[msgIndex];
+                      return _buildMessageBubble(msg, msgIndex);
                     },
                   ),
           ),
@@ -261,29 +263,29 @@ class _ChatPageState extends State<ChatPage> {
   /// 加载中的气泡（显示实时AI文本）
   Widget _buildLoadingBubble() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // AI头像
           Container(
-            width: 32,
-            height: 32,
+            width: 26,
+            height: 26,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+            child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,18 +293,18 @@ class _ChatPageState extends State<ChatPage> {
                   if (_currentAiText.isNotEmpty)
                     Text(
                       _currentAiText,
-                      style: const TextStyle(fontSize: 14, height: 1.6),
+                      style: const TextStyle(fontSize: 13, height: 1.6),
                     )
                   else
                     const Row(
                       children: [
                         SizedBox(
-                          width: 14,
-                          height: 14,
+                          width: 12,
+                          height: 12,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 8),
-                        Text('思考中...', style: TextStyle(fontSize: 13, color: Colors.black38)),
+                        SizedBox(width: 6),
+                        Text('思考中...', style: TextStyle(fontSize: 12, color: Colors.black38)),
                       ],
                     ),
                 ],
@@ -315,35 +317,43 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   /// 消息气泡
-  Widget _buildMessageBubble(ChatMessage msg) {
+  Widget _buildMessageBubble(ChatMessage msg, int msgIndex) {
     final isUser = msg.role == 'user';
+    final lines = msg.content.split('\n');
+    final isLong = lines.length > 50;
+    final isExpanded = _expandedIndices.contains(msgIndex);
+
+    // 折叠时只显示前50行
+    final displayContent = (isLong && !isExpanded)
+        ? lines.take(50).join('\n') + '\n...'
+        : msg.content;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
             Container(
-              width: 32,
-              height: 32,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 ),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+              child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isUser ? Colors.black : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,40 +361,65 @@ class _ChatPageState extends State<ChatPage> {
                   // AI生成标注（非用户消息）
                   if (!isUser)
                     Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: const Color(0xFF6366F1).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                       child: const Text(
                         'AI生成',
-                        style: TextStyle(fontSize: 10, color: Color(0xFF6366F1)),
+                        style: TextStyle(fontSize: 9, color: Color(0xFF6366F1)),
                       ),
                     ),
                   // 消息内容
                   Text(
-                    msg.content,
+                    displayContent,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       height: 1.6,
                       color: isUser ? Colors.white : Colors.black87,
                     ),
                   ),
+                  // 展开/收起按钮
+                  if (isLong) ...[
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isExpanded) {
+                            _expandedIndices.remove(msgIndex);
+                          } else {
+                            _expandedIndices.add(msgIndex);
+                          }
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          isExpanded ? '收起' : '查看全部（第${lines.length}行）',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(0xFF6366F1).withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          if (isUser) const SizedBox(width: 10),
+          if (isUser) const SizedBox(width: 8),
           if (isUser)
             Container(
-              width: 32,
-              height: 32,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(
                 color: Colors.black12,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.person, size: 16, color: Colors.black54),
+              child: const Icon(Icons.person, size: 14, color: Colors.black54),
             ),
         ],
       ),
@@ -394,7 +429,7 @@ class _ChatPageState extends State<ChatPage> {
   /// 底部输入栏
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.black.withOpacity(0.06))),
@@ -410,31 +445,31 @@ class _ChatPageState extends State<ChatPage> {
                 textInputAction: TextInputAction.newline,
                 decoration: InputDecoration(
                   hintText: '输入学习需求，如"生成决策树学习资料"...',
-                  hintStyle: const TextStyle(fontSize: 14, color: Colors.black26),
+                  hintStyle: const TextStyle(fontSize: 13, color: Colors.black26),
                   filled: true,
                   fillColor: const Color(0xFFF5F5F5),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onSubmitted: (_) => _sendMessage(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             GestureDetector(
               onTap: _isLoading ? null : _sendMessage,
               child: Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: _isLoading ? Colors.black26 : Colors.black,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.arrow_upward,
-                  size: 20,
+                  size: 18,
                   color: _isLoading ? Colors.white54 : Colors.white,
                 ),
               ),

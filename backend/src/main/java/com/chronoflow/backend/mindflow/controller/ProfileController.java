@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -54,15 +55,19 @@ public class ProfileController {
      * 通过多轮对话引导用户完成六维测评，逐步采集画像数据。
      */
     @PostMapping(value = "/build", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Map<String, Object>> buildProfile(
+    public ResponseEntity<Flux<Map<String, Object>>> buildProfile(
             HttpServletRequest request,
             @Valid @RequestBody ProfileBuildRequest body) {
 
         Long userId = (Long) request.getAttribute("userId");
         log.info("开始画像构建: userId={}", userId);
 
-        return profileService.buildProfile(userId, body.getSessionId(), body.getMessage())
+        Flux<Map<String, Object>> flux = profileService.buildProfile(userId, body.getSessionId(), body.getMessage())
                 .map(this::toSseEvent);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8")
+                .body(flux);
     }
 
     /**
@@ -70,15 +75,19 @@ public class ProfileController {
      * POST /api/v1/profile/update
      */
     @PostMapping(value = "/update", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Map<String, Object>> updateProfile(
+    public ResponseEntity<Flux<Map<String, Object>>> updateProfile(
             HttpServletRequest request,
             @Valid @RequestBody ProfileBuildRequest body) {
 
         Long userId = (Long) request.getAttribute("userId");
         log.info("画像更新: userId={}", userId);
 
-        return profileService.updateProfile(userId, body.getSessionId(), body.getMessage())
+        Flux<Map<String, Object>> flux = profileService.updateProfile(userId, body.getSessionId(), body.getMessage())
                 .map(this::toSseEvent);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8")
+                .body(flux);
     }
 
     private Map<String, Object> toSseEvent(AgentEvent event) {

@@ -187,6 +187,8 @@ CREATE TABLE IF NOT EXISTS learning_resource (
     session_id VARCHAR(64),
     resource_type VARCHAR(20) NOT NULL COMMENT 'DOC / MINDMAP / QUIZ / READING / CODE',
     title VARCHAR(200) NOT NULL,
+    file_key VARCHAR(500) NULL COMMENT 'MinIO object key (resources/{userId}/{resourceType}/{uuid}.md)',
+    file_size BIGINT NULL COMMENT 'File content size in bytes',
     content LONGTEXT NOT NULL COMMENT '资源内容（Markdown / JSON）',
     metadata TEXT COMMENT '附加元数据（JSON格式）',
     confidence_score DECIMAL(3,2) DEFAULT 0.00 COMMENT 'AI生成置信度 0.00~1.00',
@@ -198,6 +200,7 @@ CREATE TABLE IF NOT EXISTS learning_resource (
     INDEX idx_type (resource_type),
     INDEX idx_user_created (user_id, created_at),
     INDEX idx_user_type (user_id, resource_type),
+    INDEX idx_file_key (file_key),
     CONSTRAINT fk_resource_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -205,16 +208,15 @@ CREATE TABLE IF NOT EXISTS learning_resource (
 CREATE TABLE IF NOT EXISTS student_profile (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE,
-    knowledge_base TEXT COMMENT '知识基础（JSON）',
-    cognitive_style VARCHAR(50) COMMENT '认知风格：visual / verbal / logical / hands-on',
-    weak_points TEXT COMMENT '薄弱知识点（JSON）',
-    pace_preference VARCHAR(20) COMMENT '学习节奏：slow_steady / normal / fast_paced',
-    interests TEXT COMMENT '学习兴趣方向（JSON）',
-    peak_hours VARCHAR(100) COMMENT '高效学习时段',
-    error_types TEXT COMMENT '易错类型（JSON）',
-    profile_version INT DEFAULT 1,
+    knowledge_base TEXT COMMENT '知识基础',
+    cognitive_style VARCHAR(20) COMMENT '认知风格：visual / verbal / logical / hands-on',
+    weak_points TEXT COMMENT '薄弱知识点',
+    pace_preference VARCHAR(15) COMMENT '学习节奏：slow_steady / normal / fast_paced',
+    interests TEXT COMMENT '学习兴趣方向',
+    peak_hours VARCHAR(50) COMMENT '高效学习时段，如 9:00-12:00',
+    error_types TEXT COMMENT '易错类型',
+    profile_version TINYINT UNSIGNED DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
     CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

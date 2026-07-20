@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,8 @@ import java.util.concurrent.CompletableFuture;
  * - 流式对话（chatStream）— 通过 SSE 逐行解析
  * - 意图分类（classify）
  *
- * API格式遵循 OpenAI 兼容接口：POST /v1/chat/completions
+ * API格式遵循讯飞星火 OpenAI 兼容接口：POST /v2/chat/completions
+ * 响应格式同 OpenAI：choices[0].message.content
  */
 @Slf4j
 @Service
@@ -75,10 +77,14 @@ public class SparkApiService {
 
             String jsonBody = objectMapper.writeValueAsString(body);
             HttpRequest request = buildRequest("/chat/completions", jsonBody);
+            log.info("Spark API request: baseUrl={}, apiKey={}", config.getSpark().getBaseUrl(), cachedApiKey != null ? "set" : "NULL");
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            log.info("Spark API response: status={}, bodyLen={}", response.statusCode(), response.body().length());
             if (response.statusCode() == 200) {
-                return extractContent(response.body());
+                String content = extractContent(response.body());
+                log.info("Extracted content length: {}", content.length());
+                return content;
             }
             log.error("星火API返回非200: status={}, body={}", response.statusCode(), response.body());
             return "";
@@ -110,7 +116,7 @@ public class SparkApiService {
                     }
 
                     try (var reader = new java.io.BufferedReader(
-                            new java.io.InputStreamReader(response.body()))) {
+                            new java.io.InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
                         String line;
                         while ((line = reader.readLine()) != null) {
                             if (line.startsWith("data: ") && !line.contains("[DONE]")) {
@@ -122,7 +128,6 @@ public class SparkApiService {
                                     if (choices != null && choices.isArray() && choices.size() > 0) {
                                         JsonNode delta = choices.get(0).get("delta");
                                         if (delta != null) {
-                                            // spark-x 模型返回 reasoning_content（思考链）和 content（实际回复）
                                             String text = null;
                                             if (delta.has("content") && !delta.get("content").isNull()
                                                     && !delta.get("content").asText().isEmpty()) {
@@ -211,7 +216,7 @@ public class SparkApiService {
         sb.append("- PROFILE_BUILD: 用户想开始学情测评、建立学习画像\n");
         sb.append("- PROFILE_VIEW: 用户想查看自己的学习画像\n");
         sb.append("- PROFILE_UPDATE: 用户想更新学习画像\n");
-        sb.append("- RESOURCE_GEN: 用户想生成学习资料（如\"生成XX讲义\")\n");
+        sb.append("- RESOURCE_GEN: 用户想生成学习资料（如\"生成XX讲义\"）\n");
         sb.append("- GENERAL_CHAT: 普通对话、问候、其他\n\n");
         sb.append("返回格式：{\"label\": \"意图标签\", \"confidence\": 0.0~1.0}\n");
         sb.append("只返回JSON，不要包含其他文字。\n\n");
@@ -252,7 +257,6 @@ public class SparkApiService {
             if (choices != null && choices.isArray() && choices.size() > 0) {
                 JsonNode message = choices.get(0).get("message");
                 if (message != null) {
-                    // spark-x 优先取 content，没有则取 reasoning_content
                     if (message.has("content") && !message.get("content").isNull()
                             && !message.get("content").asText().isEmpty()) {
                         return message.get("content").asText();

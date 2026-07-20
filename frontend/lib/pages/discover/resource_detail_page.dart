@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../model/resource_model.dart';
 
 /// 资源详情页 — 展示学习资源的完整Markdown内容。
@@ -18,6 +19,14 @@ class ResourceDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(resource.title, style: const TextStyle(fontWeight: FontWeight.w300)),
+        actions: [
+          if (resource.canDownload)
+            IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: '下载 Markdown 文件',
+              onPressed: () => _downloadResource(context),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -159,5 +168,27 @@ class ResourceDetailPage extends StatelessWidget {
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _downloadResource(BuildContext context) async {
+    if (resource.downloadUrl == null) return;
+    final uri = Uri.parse(resource.downloadUrl!);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开下载链接')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('下载失败: $e')),
+        );
+      }
+    }
   }
 }

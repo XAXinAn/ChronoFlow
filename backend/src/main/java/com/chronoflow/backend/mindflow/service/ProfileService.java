@@ -86,7 +86,7 @@ public class ProfileService {
             existing.setInterests(interests);
             existing.setPeakHours(peakHours);
             existing.setErrorTypes(errorTypes);
-            existing.setProfileVersion(existing.getProfileVersion() + 1);
+            existing.setProfileVersion((short) (existing.getProfileVersion() + 1));
             profileMapper.updateById(existing);
             log.info("更新画像: userId={}, version={}", userId, existing.getProfileVersion());
         } else {
@@ -100,7 +100,7 @@ public class ProfileService {
                     .interests(interests)
                     .peakHours(peakHours)
                     .errorTypes(errorTypes)
-                    .profileVersion(1)
+                    .profileVersion((short) 1)
                     .build();
             profileMapper.insert(profile);
             log.info("创建画像: userId={}", userId);
@@ -117,7 +117,7 @@ public class ProfileService {
                 .interests(profile.getInterests())
                 .peakHours(profile.getPeakHours())
                 .errorTypes(profile.getErrorTypes())
-                .profileVersion(profile.getProfileVersion())
+                .profileVersion(profile.getProfileVersion() != null ? profile.getProfileVersion().intValue() : null)
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())
                 .build();

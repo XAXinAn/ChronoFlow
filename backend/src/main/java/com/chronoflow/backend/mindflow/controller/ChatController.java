@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -93,26 +94,29 @@ public class ChatController {
      * - COMPLETE: 完成通知
      */
     @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Map<String, Object>> sendMessage(
+    public ResponseEntity<Flux<Map<String, Object>>> sendMessage(
             HttpServletRequest request,
             @Valid @RequestBody ChatRequest chatRequest) {
 
         Long userId = (Long) request.getAttribute("userId");
 
         // 限流检查
+        Flux<Map<String, Object>> errorFlux = Flux.just(Map.of(
+                "type", "ERROR",
+                "content", "请求过于频繁，请稍后再试（每分钟最多 " + MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE + " 次）",
+                "retryable", false
+        ));
+
         if (!rateLimiterService.tryAcquire(MindFlowConstants.RATE_LIMIT_KEY_CHAT_MINUTE + userId, MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE, java.time.Duration.ofSeconds(60))) {
-            // 限流时返回单条 ERROR 事件（SSE 仍保持一致格式）
-            return Flux.just(Map.of(
-                    "type", "ERROR",
-                    "content", "请求过于频繁，请稍后再试（每分钟最多 " + MindFlowConstants.FALLBACK_MAX_CHAT_PER_MINUTE + " 次）",
-                    "retryable", false
-            ));
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8")
+                    .body(errorFlux);
         }
 
         String sessionId = chatRequest.getSessionId();
         String message = chatRequest.getMessage();
 
-        return chatService.sendMessage(userId, sessionId, message)
+        Flux<Map<String, Object>> flux = chatService.sendMessage(userId, sessionId, message)
                 .map(this::agentEventToMap)
                 .onErrorResume(e -> {
                     log.error("SSE 流异常: userId={}, error={}", userId, e.getMessage(), e);
@@ -122,6 +126,10 @@ public class ChatController {
                             "retryable", true
                     ));
                 });
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8")
+                .body(flux);
     }
 
     /**

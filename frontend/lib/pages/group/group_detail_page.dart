@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
 import '../../model/group_model.dart';
 import '../../service/auth_service.dart';
@@ -60,9 +60,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         _pendingSubgroupCount = subs.length;
       });
     } catch (_) {}
-    } catch (e) {
-      debugPrint('_loadPendingCounts failed: $e');
-    }
   }
 
   Future<void> _loadChildren() async {
@@ -77,9 +74,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         return a.name.compareTo(b.name);
       });
       if (mounted) setState(() => _children = children);
-    } catch (e) {
-      debugPrint('_loadChildren failed: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _requestSubgroup() async {
@@ -90,9 +85,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
   String get _depthLabel {
     final d = widget.group.depth;
-    if (d == 0) return '鏍圭兢缁?;
-    if (d == 1) return '鐩村睘瀛愮兢缁?;
-    return '绗?{d}灞傚瓙缇ょ粍';
+    if (d == 0) return '根群组';
+    if (d == 1) return '直属子群组';
+    return '第${d}层子群组';
   }
 
   Widget _buildReviewEntry({
@@ -147,7 +142,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             Text(widget.group.description, style: const TextStyle(fontSize: 14, color: Colors.black54)),
             const SizedBox(height: 16),
           ],
-          // 灞傜骇淇℃伅
+          // 层级信息
           Container(
             padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
@@ -157,21 +152,21 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               Text(_depthLabel, style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500)),
             ]),
           ),
-          // 鐢宠瀛愮兢锛堜粎缇や富/绠＄悊鍛樺彲瑙侊級
+          // 申请子群（仅群主/管理员可见）
           if (_isCreator || _isAdmin) ...[
             SizedBox(width: double.infinity, child: OutlinedButton.icon(
               onPressed: () => _requestSubgroup(),
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('鐢宠鍒涘缓瀛愮兢缁?),
+              label: const Text('申请创建子群组'),
               style: OutlinedButton.styleFrom(foregroundColor: Colors.black54, side: const BorderSide(color: Colors.black12)),
             )),
             const SizedBox(height: 12),
-            // 瀹℃牳鍏ュ彛锛堜粎缇や富/绠＄悊鍛樺彲瑙侊級
+            // 审核入口（仅群主/管理员可见）
             _buildReviewEntry(
               icon: Icons.person_add,
-              label: '鍔犵兢鐢宠',
+              label: '加群申请',
               count: _pendingJoinCount,
-              countLabel: '鏉″緟澶勭悊',
+              countLabel: '条待处理',
               onTap: () async {
                 await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupJoinRequestsPage(group: widget.group)));
                 _loadPendingCounts();
@@ -180,9 +175,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             const SizedBox(height: 8),
             _buildReviewEntry(
               icon: Icons.account_tree,
-              label: '瀛愮兢缁勫垱寤虹敵璇?,
+              label: '子群组创建申请',
               count: _pendingSubgroupCount,
-              countLabel: '鏉″緟澶勭悊',
+              countLabel: '条待处理',
               onTap: () async {
                 await Navigator.push(context, MaterialPageRoute(builder: (_) => SubgroupRequestsPage(group: widget.group)));
                 _loadPendingCounts();
@@ -190,7 +185,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             ),
             const SizedBox(height: 12),
           ],
-          // 鎴愬憳
+          // 成员
           InkWell(
             onTap: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => GroupMembersPage(group: widget.group)));
@@ -205,13 +200,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))]),
               child: Row(children: [
                 const Icon(Icons.people, size: 22, color: Colors.black54), const SizedBox(width: 16),
-                Text('${widget.group.memberCount} 鍚嶆垚鍛?, style: const TextStyle(fontSize: 15, color: Colors.black87)),
+                Text('${widget.group.memberCount} 名成员', style: const TextStyle(fontSize: 15, color: Colors.black87)),
                 const Spacer(), const Icon(Icons.chevron_right, size: 20, color: Colors.black26),
               ]),
             ),
           ),
           const SizedBox(height: 12),
-          // 閭€璇风爜
+          // 邀请码
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12),
@@ -219,17 +214,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
             child: Row(children: [
               const Icon(Icons.link, size: 22, color: Colors.black54), const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('閭€璇风爜', style: TextStyle(fontSize: 12, color: Colors.black54)), const SizedBox(height: 4),
+                const Text('邀请码', style: TextStyle(fontSize: 12, color: Colors.black54)), const SizedBox(height: 4),
                 Text(widget.group.inviteCode, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w500, fontSize: 18)),
               ])),
               IconButton(icon: const Icon(Icons.qr_code, size: 22, color: Colors.black54),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GroupQrPage(group: widget.group)))),
             ]),
           ),
-          // 瀛愮兢缁勫垪琛?
+          // 子群组列表
           if (_children.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Text('鐩村睘瀛愮兢缁?, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87)),
+            const Text('直属子群组', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87)),
             const SizedBox(height: 8),
             ..._children.map((child) => Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -247,7 +242,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(child.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                        Text('${child.memberCount} 浜?{child.descendantCount > 0 ? " 路 ${child.descendantCount}涓瓙缇ょ粍" : ""}', style: const TextStyle(fontSize: 12, color: Colors.black45)),
+                        Text('${child.memberCount} 人${child.descendantCount > 0 ? " · ${child.descendantCount}个子群组" : ""}', style: const TextStyle(fontSize: 12, color: Colors.black45)),
                       ])),
                       const Icon(Icons.chevron_right, size: 18, color: Colors.black26),
                     ]),
@@ -281,7 +276,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))]),
                 child: const Row(children: [
                   Icon(Icons.settings, size: 22, color: Colors.black54), SizedBox(width: 16),
-                  Text('缇ょ粍璁剧疆', style: TextStyle(fontSize: 16, color: Colors.black87)),
+                  Text('群组设置', style: TextStyle(fontSize: 16, color: Colors.black87)),
                   Spacer(), Icon(Icons.chevron_right, size: 20, color: Colors.black26),
                 ]),
               ),

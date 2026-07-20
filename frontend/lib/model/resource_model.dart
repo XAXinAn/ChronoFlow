@@ -4,6 +4,9 @@ class LearningResource {
   final String resourceType;  // DOC / MINDMAP / QUIZ / READING / CODE
   final String title;
   final String content;
+  final String? fileKey;      // MinIO object key
+  final int? fileSize;        // 文件大小（字节）
+  final String? downloadUrl;  // MinIO 公开访问 URL
   final String? metadata;
   final double confidenceScore;
   final bool reviewed;
@@ -14,6 +17,9 @@ class LearningResource {
     required this.resourceType,
     required this.title,
     required this.content,
+    this.fileKey,
+    this.fileSize,
+    this.downloadUrl,
     this.metadata,
     this.confidenceScore = 0.85,
     this.reviewed = false,
@@ -26,6 +32,9 @@ class LearningResource {
       resourceType: json['resourceType'] ?? 'DOC',
       title: json['title'] ?? '',
       content: json['content'] ?? '',
+      fileKey: json['fileKey'],
+      fileSize: json['fileSize'],
+      downloadUrl: json['downloadUrl'],
       metadata: json['metadata'],
       confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 0.85,
       reviewed: json['reviewed'] ?? false,
@@ -34,6 +43,9 @@ class LearningResource {
           : DateTime.now(),
     );
   }
+
+  /// 该资源是否可下载（fileKey 不为空则可从 MinIO 下载）
+  bool get canDownload => fileKey != null && fileKey!.isNotEmpty;
 
   /// 资源类型的中文显示名称
   String get typeDisplayName {

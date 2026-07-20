@@ -42,7 +42,15 @@ public class LearningResource {
     @TableField("title")
     private String title;
 
-    /** 资源内容（Markdown / JSON） */
+    /** MinIO object key（如 resources/{userId}/{resourceType}/{uuid}.md） */
+    @TableField("file_key")
+    private String fileKey;
+
+    /** 文件大小（字节），上传 MinIO 后记录 */
+    @TableField("file_size")
+    private Long fileSize;
+
+    /** 资源内容（Markdown / JSON）。新资源存 MinIO，本字段为 NULL；旧资源仍存 MySQL */
     @TableField("content")
     private String content;
 

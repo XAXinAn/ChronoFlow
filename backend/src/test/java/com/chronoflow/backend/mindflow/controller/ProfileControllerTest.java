@@ -88,7 +88,7 @@ class ProfileControllerTest {
         body.setSessionId("s1");
         body.setMessage("开始");
 
-        Flux<Map<String, Object>> result = profileController.buildProfile(request, body);
+        Flux<Map<String, Object>> result = profileController.buildProfile(request, body).getBody();
 
         StepVerifier.create(result)
                 .assertNext(m -> assertThat(m.get("type")).isEqualTo("PROGRESS"))
@@ -109,7 +109,7 @@ class ProfileControllerTest {
         body.setSessionId("s1");
         body.setMessage("更新");
 
-        Flux<Map<String, Object>> result = profileController.updateProfile(request, body);
+        Flux<Map<String, Object>> result = profileController.updateProfile(request, body).getBody();
 
         StepVerifier.create(result)
                 .assertNext(m -> assertThat(m.get("type")).isEqualTo("COMPLETE"))
