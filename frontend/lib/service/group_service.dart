@@ -1,0 +1,277 @@
+import 'dart:convert';
+import '../model/group_model.dart';
+import 'api_client.dart';
+
+class GroupService {
+  static const _baseUrl = '/groups';
+
+  Future<List<Group>> getMyGroups() async {
+    final response = await ApiClient.get('$_baseUrl/my');
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取群组列表失败');
+  }
+
+  Future<Group> createGroup({
+    required String name,
+    required String description,
+  }) async {
+    final response = await ApiClient.post(
+      _baseUrl,
+      body: {
+        'name': name,
+        'description': description,
+      },
+    );
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      return Group.fromJson(data['data']);
+    }
+    throw Exception(data['message'] ?? '创建群组失败');
+  }
+
+  Future<Group> joinGroup(String inviteCode) async {
+    final response = await ApiClient.post(
+      '$_baseUrl/join',
+      body: {'inviteCode': inviteCode},
+    );
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      return Group.fromJson(data['data']);
+    }
+    throw Exception(data['message'] ?? '加入群组失败');
+  }
+
+  Future<void> leaveGroup(String groupId) async {
+    final response = await ApiClient.delete('$_baseUrl/$groupId/leave');
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '退出群组失败');
+    }
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    final response = await ApiClient.delete('$_baseUrl/$groupId');
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '删除群组失败');
+    }
+  }
+
+  Future<List<GroupMember>> getGroupMembers(String groupId) async {
+    final response = await ApiClient.get('$_baseUrl/$groupId/members');
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data']['members'] ?? [];
+      return list.map((json) => GroupMember.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取成员列表失败');
+  }
+
+  Future<void> setGroupAdmin(String groupId, int userId, bool isAdmin) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/admins/$userId',
+      body: {'isAdmin': isAdmin},
+    );
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '设置管理员失败');
+    }
+  }
+
+  Future<void> updateGroupSettings(String groupId, {bool? requireApproval}) async {
+    final body = <String, dynamic>{};
+    if (requireApproval != null) {
+      body['requireApproval'] = requireApproval;
+    }
+
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/settings',
+      body: body,
+    );
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '更新群组设置失败');
+    }
+  }
+
+  Future<void> updateGroupName(String groupId, String newName) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/name',
+      body: {'name': newName},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '修改群组名称失败');
+    }
+  }
+
+  Future<void> transferOwnership(String groupId, int newCreatorId) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/transfer',
+      body: {'newCreatorId': newCreatorId},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '转让群主失败');
+    }
+  }
+
+  Future<List<JoinRequest>> getJoinRequests(String groupId) async {
+    final response = await ApiClient.get('$_baseUrl/$groupId/join-requests');
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => JoinRequest.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取加群申请失败');
+  }
+
+  Future<void> approveJoinRequest(String groupId, int userId, bool approve) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/join-requests/$userId',
+      body: {'approve': approve},
+    );
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '处理加群申请失败');
+    }
+  }
+
+  Future<void> removeMember(String groupId, int userId) async {
+    final response = await ApiClient.delete('$_baseUrl/$groupId/members/$userId');
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '移除成员失败');
+    }
+  }
+
+  Future<List<JoinRequest>> getMyJoinRequests() async {
+    final response = await ApiClient.get('/groups/my-join-requests');
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => JoinRequest.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取加群申请失败');
+  }
+
+  Future<List<Group>> getMyGroupTree() async {
+    final response = await ApiClient.get('$_baseUrl/my/tree');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取群组树失败');
+  }
+
+  Future<List<Group>> getPublishTargetTree() async {
+    final response = await ApiClient.get('$_baseUrl/my/tree/publish');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取下发目标失败');
+  }
+
+  Future<void> createSubgroupRequest(String parentGroupId, String name, String description) async {
+    final response = await ApiClient.post(
+      '$_baseUrl/$parentGroupId/subgroup-requests',
+      body: {'name': name, 'description': description},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '提交申请失败');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSubgroupRequests(String parentGroupId) async {
+    final response = await ApiClient.get('$_baseUrl/$parentGroupId/subgroup-requests');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.cast<Map<String, dynamic>>();
+    }
+    throw Exception(data['message'] ?? '获取申请列表失败');
+  }
+
+  Future<void> approveSubgroupRequest(String parentGroupId, int applicantId, bool approve) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$parentGroupId/subgroup-requests/$applicantId',
+      body: {'approve': approve},
+    );
+    final data = json.decode(response);
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '审核失败');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMySubgroupRequests() async {
+    final response = await ApiClient.get('$_baseUrl/my/subgroup-requests');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.cast<Map<String, dynamic>>();
+    }
+    throw Exception(data['message'] ?? '获取申请列表失败');
+  }
+
+  Future<List<Group>> getDescendantTree(String groupId) async {
+    final response = await ApiClient.get('$_baseUrl/$groupId/descendants');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取子孙群组失败');
+  }
+
+  Future<List<Group>> getGroupChildren(String groupId) async {
+    final response = await ApiClient.get('$_baseUrl/$groupId/children');
+    final data = json.decode(response);
+    if (data['code'] == 200) {
+      final List<dynamic> list = data['data'] ?? [];
+      return list.map((json) => Group.fromJson(json)).toList();
+    }
+    throw Exception(data['message'] ?? '获取子群组失败');
+  }
+
+  Future<Group> getGroupInfoByInviteCode(String inviteCode) async {
+    final response = await ApiClient.get('$_baseUrl/info', params: {'inviteCode': inviteCode});
+    final data = json.decode(response);
+
+    if (data['code'] == 200) {
+      return Group.fromJson(data['data']);
+    }
+    throw Exception(data['message'] ?? '获取群组信息失败');
+  }
+
+  Future<void> updateMemberNickname(String groupId, int userId, String nickname) async {
+    final response = await ApiClient.put(
+      '$_baseUrl/$groupId/members/$userId/nickname',
+      body: {'nickname': nickname},
+    );
+    final data = json.decode(response);
+
+    if (data['code'] != 200) {
+      throw Exception(data['message'] ?? '修改群昵称失败');
+    }
+  }
+}
