@@ -40,6 +40,9 @@ public class User implements UserDetails {
     @TableField("phone")
     private String phone;
 
+    @TableField("student_id")
+    private String studentId;
+
     @TableField("real_name_verified")
     private Boolean realNameVerified;
 

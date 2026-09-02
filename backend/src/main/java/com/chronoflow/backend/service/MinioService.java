@@ -88,6 +88,26 @@ public class MinioService {
     }
 
     /**
+     * 上传音频文件到 MinIO。
+     * Object path: audio/{userId}/{uuid}.{ext}
+     * @param bytes 音频字节数据
+     * @param userId 用户 ID
+     * @param ext 音频扩展名（amr/mp3/wav/m4a）
+     * @return MinIO 公开访问 URL
+     */
+    public String uploadAudio(byte[] bytes, Long userId, String ext) {
+        String uuid = java.util.UUID.randomUUID().toString().replace("-", "");
+        String objectName = String.format("audio/%d/%s.%s", userId, uuid, ext);
+        String contentType = switch (ext.toLowerCase()) {
+            case "mp3" -> "audio/mpeg";
+            case "wav" -> "audio/wav";
+            case "m4a" -> "audio/mp4";
+            default -> "audio/amr";
+        };
+        return upload(bytes, objectName, contentType);
+    }
+
+    /**
      * 获取学习资源在 MinIO 中的公开访问 URL。
      * MinIO bucket 为 public-read，无需生成预签名 URL。
      */

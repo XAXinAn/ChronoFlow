@@ -15,10 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
     real_name_verified TINYINT DEFAULT 0,
     real_name VARCHAR(100) DEFAULT NULL,
     id_card_number VARCHAR(255) DEFAULT NULL COMMENT 'AES encrypted',
+    student_id VARCHAR(32) DEFAULT NULL COMMENT '学号',
     verified_at DATETIME DEFAULT NULL,
     INDEX idx_username (username),
     INDEX idx_email (email),
-    INDEX idx_phone (phone)
+    INDEX idx_phone (phone),
+    INDEX idx_student_id (student_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 群组表
@@ -143,6 +145,28 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     INDEX idx_status (status),
     INDEX idx_user_created (user_id, created_at),
     CONSTRAINT fk_feedback_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 成员级邀请码表（Excel 导入建群时为未注册成员生成）
+CREATE TABLE IF NOT EXISTS member_invite_codes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    group_id VARCHAR(64) NOT NULL,
+    creator_id BIGINT NOT NULL,
+    masked_name VARCHAR(50) DEFAULT NULL,
+    masked_student_id VARCHAR(32) DEFAULT NULL,
+    masked_email VARCHAR(100) DEFAULT NULL,
+    masked_phone VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    expires_at DATETIME DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    consumed_at DATETIME DEFAULT NULL,
+    INDEX idx_code (code),
+    INDEX idx_group_id (group_id),
+    INDEX idx_creator_id (creator_id),
+    INDEX idx_status (status),
+    CONSTRAINT fk_member_invite_group FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
+    CONSTRAINT fk_member_invite_creator FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

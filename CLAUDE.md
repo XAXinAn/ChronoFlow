@@ -121,11 +121,11 @@ npm run build                  # 构建到 backend/static/admin/
 
 ## 数据库
 
-10 张表（见 `init.sql`）：
+11 张表（见 `init.sql`）：
 
 | 表 | 说明 |
 |----|------|
-| **users** | 用户 |
+| **users** | 用户（v1.3.0 新增 student_id 学号字段） |
 | **schedules** | 日程 |
 | **groups** | 群组（多层级的） |
 | **group_members** | 群组成员 |
@@ -134,6 +134,7 @@ npm run build                  # 构建到 backend/static/admin/
 | **schedule_publish_targets** | 日程下发目标 |
 | **feedbacks** | 用户反馈 |
 | **admin_users** | 管理后台账号（独立于 users 表） |
+| **member_invite_codes** | 成员级邀请码（v1.3.0 新增，未注册成员定向入群） |
 
 ## 核心功能
 
@@ -163,9 +164,22 @@ npm run build                  # 构建到 backend/static/admin/
 - 阿里云 CloudAuth ID_PRO 方案
 
 ### 图片识别
-- 首页日历下方「拍照识别」+「相册上传」卡片
+- 首页日历下方「拍照识别」+「相册上传」+「录音识别」卡片
 - 相册多选图片，逐张 OCR 识别后汇总确认
 - AI 识别多日程逐条勾选导入系统日历
+
+### 语音识别（v1.2.0 新增）
+- 录音识别：App 内实时录制语音 → ASR 转文字 → AI 提取日程 → 确认导入
+- 语音条识别：选择微信/钉钉等聊天应用语音条 → ASR → AI 提取 → 确认导入
+- 复用现有 AI 提取与确认导入流程，支持多日程提取与去重
+
+### Excel 导入批量建群（v1.2.0 新增，v1.3.0 扩展）
+- 下载 Excel 模板 → 填写群组信息（名称/描述/父群组/成员姓名/学号/邮箱/手机号）→ 上传
+- 每个成员独占一行，支持姓名/学号/邮箱/手机号四元组信息
+- 成员注册状态识别：按手机号 > 邮箱 > 学号优先级匹配已注册用户
+- 已注册成员直接加入群组，未注册成员生成成员级邀请码（含脱敏身份信息）
+- 校验预览（Redis token 缓存）→ 确认导入 → 事务化批量创建 + 群组级邀请码 + 成员级邀请码
+- 支持多层级群组关系，内容审核保护，向后兼容旧 5 列模板
 
 ### 版本更新检测
 - GET /api/app/version 返回版本号和下载链接
@@ -195,6 +209,23 @@ npm run build                  # 构建到 backend/static/admin/
 | `/api/admin/groups/{id}` | PUT/DELETE | 编辑/删除群组 |
 | `/api/admin/schedules` | POST | 新建日程 |
 | `/api/admin/schedules/{id}` | PUT/DELETE | 编辑/删除日程 |
+
+### v1.2.0 新增
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/voice/recognize` | POST | 语音识别（录音/语音条，Multipart） |
+| `/api/group/import/template` | GET | 下载 Excel 建群模板 |
+| `/api/group/import/preview` | POST | 上传 Excel 校验预览（Multipart） |
+| `/api/group/import/confirm` | POST | 确认批量建群 |
+
+### v1.3.0 扩展
+
+Excel 导入建群三个接口路径不变，响应结构向后兼容扩展：
+- 模板扩展至 8 列（新增成员姓名/学号/邮箱）
+- 预览结果含每成员注册状态标识（已注册/未注册）与脱敏信息
+- 建群结果含未注册成员邀请码清单（成员级邀请码）
+- `users` 表新增 `student_id` 列，新增 `member_invite_codes` 表
 
 ## 生产部署
 
@@ -243,7 +274,7 @@ ssh -i XAXINAN.pem root@8.136.20.182 '
 
 ## 当前版本
 
-**v1.1.0** (versionCode 3)
+**v1.3.0** (versionCode 5)
 
 ## 待完成
 

@@ -118,3 +118,32 @@ crypto:
   secret: ${CRYPTO_SECRET}
   iteration: ${CRYPTO_ITERATION:600000}
 
+# ========================
+# 语音识别配置
+# ========================
+voice:
+  asr:
+    model: ${VOICE_ASR_MODEL:paraformer-realtime-v2}
+    timeout-seconds: ${VOICE_ASR_TIMEOUT_SECONDS:60}
+  max-size-mb: ${VOICE_MAX_SIZE_MB:10}
+  supported-formats: ${VOICE_SUPPORTED_FORMATS:amr,mp3,wav,m4a}
+
+# ========================
+# Excel 导入建群配置
+# ========================
+excel:
+  max-size-mb: ${EXCEL_MAX_SIZE_MB:5}
+  max-groups: ${EXCEL_MAX_GROUPS:100}
+  import-token-ttl-minutes: ${EXCEL_IMPORT_TOKEN_TTL_MINUTES:10}
+  member-invite-code:
+    length: ${EXCEL_MEMBER_INVITE_CODE_LENGTH:8}
+    charset: ${EXCEL_MEMBER_INVITE_CODE_CHARSET:ALPHANUMERIC}
+    max-retry: ${EXCEL_MEMBER_INVITE_CODE_MAX_RETRY:10}
+
+# ========================
+# 群组配置
+# ========================
+group:
+  max-depth: ${GROUP_MAX_DEPTH:50}
+  max-members-per-group: ${GROUP_MAX_MEMBERS_PER_GROUP:500}
+

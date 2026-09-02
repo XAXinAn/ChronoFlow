@@ -12,6 +12,8 @@ import 'schedule/add_schedule_page.dart';
 import 'schedule/add_group_schedule_page.dart';
 import 'schedule/select_group_page.dart';
 import 'schedule/confirm_schedule_page.dart';
+import 'schedule/voice_record_page.dart';
+import 'schedule/voice_bar_pick_page.dart';
 import 'schedule/search_page.dart';
 import 'group/qr_scanner_page.dart';
 import 'group/group_page.dart';
@@ -711,22 +713,46 @@ MessageUtils.show(context, '搜索失败: $e');
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Row(
+        child: Column(
           children: [
-            Expanded(
-              child: _buildCameraAction(
-                icon: Icons.camera_alt_outlined,
-                label: '拍照识别',
-                onTap: () => _pickImage(ImageSource.camera),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCameraAction(
+                    icon: Icons.camera_alt_outlined,
+                    label: '拍照识别',
+                    onTap: () => _pickImage(ImageSource.camera),
+                  ),
+                ),
+                Container(width: 0.5, height: 32, color: const Color(0xFFEEEEEE)),
+                Expanded(
+                  child: _buildCameraAction(
+                    icon: Icons.photo_library_outlined,
+                    label: '相册上传',
+                    onTap: () => _pickImageFromGallery(),
+                  ),
+                ),
+              ],
             ),
-            Container(width: 0.5, height: 32, color: const Color(0xFFEEEEEE)),
-            Expanded(
-              child: _buildCameraAction(
-                icon: Icons.photo_library_outlined,
-                label: '相册上传',
-                onTap: () => _pickImageFromGallery(),
-              ),
+            Container(height: 0.5, margin: const EdgeInsets.symmetric(vertical: 2), color: const Color(0xFFEEEEEE)),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCameraAction(
+                    icon: Icons.mic_outlined,
+                    label: '录音识别',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceRecordPage())),
+                  ),
+                ),
+                Container(width: 0.5, height: 32, color: const Color(0xFFEEEEEE)),
+                Expanded(
+                  child: _buildCameraAction(
+                    icon: Icons.audio_file_outlined,
+                    label: '语音条识别',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceBarPickPage())),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
