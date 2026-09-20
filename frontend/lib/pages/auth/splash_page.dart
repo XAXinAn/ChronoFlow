@@ -321,6 +321,11 @@ class _SplashPageState extends State<SplashPage> {
     );
   }
 
+  // 与后端 /app/version 返回的 versionCode 比对，判断是否需要提示更新。
+  // 注意：这里刻意与 pubspec 的构建号（CFBundleVersion）解耦 ——
+  // 构建号是苹果侧要求全局唯一的上传标识（1.1.0+10），
+  // 而本常量代表「1.1.0 这个发布批次」的版本码（安卓同批次亦为 3）。
+  // 若要改动，需与后端 APP_VERSION_CODE 协同，避免误弹或漏弹更新提示。
   static const int _currentVersionCode = 3;
   String _newVersion = '';
   String _updateDownloadUrl = '';
