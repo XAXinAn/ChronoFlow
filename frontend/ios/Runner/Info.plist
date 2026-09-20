@@ -34,6 +34,8 @@
 	<string>时纪流需要访问您的相册以选择通知截图来解析日程信息</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>时纪流需要访问日历以同步您创建的日程到系统日历</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>时纪流需要读取并写入您的日历，以便把您创建的日程同步到系统日历</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

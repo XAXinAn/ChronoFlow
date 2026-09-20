@@ -5,9 +5,11 @@ class AppConstants {
   // API 配置 - 通过 --dart-define=BASE_URL=... 在构建时切换
   // 模拟器：默认 10.0.2.2 → 宿主机 localhost
   // 真机调试：--dart-define=BASE_URL=http://192.168.x.x:8080/api
+  // 发布归档：--dart-define=BASE_URL=https://chronocloud.top/api
+  // 注意：默认值必须是 HTTPS 域名，否则 iOS ATS 会直接拦截明文 HTTP 请求。
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://localhost:8080/api',
+    defaultValue: 'https://chronocloud.top/api',
   );
 
   // 主题色 - 黑白极简风格
