@@ -137,21 +137,54 @@ public class NotificationAiService {
     }
 
     private List<NotificationParseResult> parseJsonResult(String json) {
+        // 模型偶尔不遵守「纯JSON」要求，会用 ```json 围栏包裹，或在 JSON 前后加解释性文字。
+        // 直接反序列化会抛 Unexpected character ('`' (code 96))，这里先清洗再解析。
+        String cleaned = stripCodeFence(json);
         try {
-            NotificationParseResultList listResult = OBJECT_MAPPER.readValue(json, NotificationParseResultList.class);
+            NotificationParseResultList listResult = OBJECT_MAPPER.readValue(cleaned, NotificationParseResultList.class);
             return listResult.getItems();
         } catch (Exception e1) {
             try {
-                return OBJECT_MAPPER.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<NotificationParseResult>>() {});
+                return OBJECT_MAPPER.readValue(cleaned, new com.fasterxml.jackson.core.type.TypeReference<List<NotificationParseResult>>() {});
             } catch (Exception e2) {
                 try {
-                    NotificationParseResult single = OBJECT_MAPPER.readValue(json, NotificationParseResult.class);
+                    NotificationParseResult single = OBJECT_MAPPER.readValue(cleaned, NotificationParseResult.class);
                     return List.of(single);
                 } catch (Exception e3) {
-                    log.error("[JSON解析失败] json: {}", json);
+                    log.error("[JSON解析失败] 原始json: {}, 清洗后: {}", json, cleaned);
                     throw new BusinessException("JSON解析失败: " + e3.getMessage(), e3);
                 }
             }
         }
+    }
+
+    /**
+     * 剥离 ```json 围栏及 JSON 前后的解释性文字。
+     * 先去掉围栏，再截取第一个 [ 或 { 到最后一个 ] 或 }，作为模型未守约时的兜底。
+     */
+    private static String stripCodeFence(String raw) {
+        if (raw == null) return "";
+        String s = raw.trim();
+
+        if (s.startsWith("```")) {
+            int firstNewline = s.indexOf('\n');
+            s = (firstNewline > 0 ? s.substring(firstNewline + 1) : s.substring(3));
+            int fenceEnd = s.lastIndexOf("```");
+            if (fenceEnd >= 0) s = s.substring(0, fenceEnd);
+            s = s.trim();
+        }
+
+        int startArr = s.indexOf('[');
+        int startObj = s.indexOf('{');
+        int start;
+        if (startArr < 0) start = startObj;
+        else if (startObj < 0) start = startArr;
+        else start = Math.min(startArr, startObj);
+
+        if (start > 0) {
+            int end = Math.max(s.lastIndexOf(']'), s.lastIndexOf('}'));
+            s = (end > start) ? s.substring(start, end + 1) : s.substring(start);
+        }
+        return s.trim();
     }
 }

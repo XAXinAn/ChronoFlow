@@ -36,7 +36,8 @@ public class NotificationService {
 
         long startTime = System.currentTimeMillis();
         String ocrText = request.getOcrText();
-        log.info("[后端解析开始] userId={}, OCR文本长度: {} 字符", userId, ocrText.length());
+        // 记录完整文本：OCR 识别质量差是解析失败的常见根因，只记长度无法定位。
+        log.info("[后端解析开始] userId={}, OCR文本长度: {} 字符, 内容: {}", userId, ocrText.length(), ocrText);
 
         List<NotificationParseResult> parseResults = notificationAiService.parseNotification(ocrText);
 
