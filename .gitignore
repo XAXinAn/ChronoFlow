@@ -8,6 +8,7 @@
 *.pem
 *.keystore
 *.jks
+*.key
 .keys
 XAXINAN.pem
 

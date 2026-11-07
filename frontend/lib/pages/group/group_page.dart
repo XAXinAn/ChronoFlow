@@ -6,6 +6,7 @@ import '../../service/group_service.dart';
 import '../../utils/message_utils.dart';
 import 'create_group_page.dart';
 import 'join_group_page.dart';
+import 'excel_import_page.dart';
 import 'group_detail_page.dart';
 
 class GroupPage extends StatefulWidget {
@@ -101,6 +102,16 @@ class _GroupPageState extends State<GroupPage> {
               if (r != null) _loadGroups();
             })),
           ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: _buildActionCard(icon: Icons.upload_file, label: '导入Excel建群', onTap: () async {
+              final r = await Navigator.push(context, MaterialPageRoute(builder: (_) => const ExcelImportPage()));
+              if (r != null) _loadGroups();
+            }),
+          ),
         ),
         Expanded(
           child: _isLoading
